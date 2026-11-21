@@ -24,7 +24,132 @@ class AuthController extends Controller
     {
         return Inertia::render('Login', [
             'status' => session('status'),
+            'loginStep' => session('login_step'),
+            'loginEmail' => session('login_email'),
+            'hasPassword' => session('login_has_password', false),
         ]);
+    }
+
+    public function identifyLogin(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'email'],
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+        $user = User::where('email', $email)->first();
+
+        if (! $user instanceof User) {
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        if ($user->hasPassword()) {
+            return redirect()->route('login')->with([
+                'login_step' => 'password',
+                'login_email' => $user->email,
+                'login_has_password' => true,
+            ]);
+        }
+
+        $remaining = OtpRateLimiter::check('login-otp', $email);
+        if ($remaining !== null) {
+            return redirect()->route('login')->with([
+                'login_step' => 'otp',
+                'login_email' => $user->email,
+                'login_has_password' => false,
+                'status' => 'A login code was recently sent. Please check your email or wait ' . OtpRateLimiter::formatRemaining($remaining) . ' before requesting a new code.',
+            ]);
+        }
+
+        $user->sendLoginOtpNotification();
+
+        return redirect()->route('login')->with([
+            'login_step' => 'otp',
+            'login_email' => $user->email,
+            'login_has_password' => false,
+            'status' => 'A 6-digit login code has been sent to your email.',
+        ]);
+    }
+
+    public function sendLoginOtp(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'email'],
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+        $user = User::where('email', $email)->first();
+
+        if (! $user instanceof User) {
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        $remaining = OtpRateLimiter::check('login-otp', $email);
+        if ($remaining !== null) {
+            return redirect()->route('login')
+                ->with([
+                    'login_step' => 'otp',
+                    'login_email' => $user->email,
+                    'login_has_password' => $user->hasPassword(),
+                ])
+                ->withErrors([
+                    'otp' => 'Please wait ' . OtpRateLimiter::formatRemaining($remaining) . ' before requesting a new code.',
+                ]);
+        }
+
+        Cache::forget('auth:otp:login:lock:' . $email);
+        $user->sendLoginOtpNotification();
+
+        return redirect()->route('login')->with([
+            'login_step' => 'otp',
+            'login_email' => $user->email,
+            'login_has_password' => $user->hasPassword(),
+            'status' => 'A 6-digit login code has been sent to your email.',
+        ]);
+    }
+
+    public function loginWithOtp(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'otp' => ['required', 'digits:6'],
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+        $user = User::where('email', $email)->first();
+
+        if (! $user instanceof User) {
+            throw ValidationException::withMessages([
+                'otp' => 'Invalid or expired login code.',
+            ]);
+        }
+
+        $inputOtp = trim($validated['otp']);
+        $cachedOtp = Cache::get('auth:otp:login:' . $email);
+
+        if (! is_string($cachedOtp) || $cachedOtp === '' || ! hash_equals($cachedOtp, $inputOtp)) {
+            throw ValidationException::withMessages([
+                'otp' => 'Invalid or expired login code.',
+            ]);
+        }
+
+        Cache::forget('auth:otp:login:' . $email);
+        Cache::forget('auth:otp:login:lock:' . $email);
+        OtpRateLimiter::clear('login-otp', $email);
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            event(new Verified($user));
+        }
+
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+
+        return redirect()->intended('/');
     }
 
     public function login(Request $request): RedirectResponse
@@ -66,18 +191,19 @@ class AuthController extends Controller
     public function register(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'agree' => ['accepted'],
         ], [
             'agree.accepted' => 'Please accept the Terms of Service and Privacy Policy to continue.',
         ]);
 
+        $email = strtolower(trim($validated['email']));
+        $name = Str::before($email, '@');
+
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => strtolower(trim($validated['email'])),
-            'password' => Hash::make($validated['password']),
+            'name' => $name,
+            'email' => $email,
+            'password' => null,
         ]);
 
         Auth::login($user);
@@ -126,6 +252,12 @@ class AuthController extends Controller
         Cache::forget('auth:otp:register:' . $user->id);
         Cache::forget('auth:otp:register:lock:' . $user->id);
         OtpRateLimiter::clear('register-verification', $emailKey);
+
+        if (! is_string($user->name) || trim($user->name) === '') {
+            $user->forceFill([
+                'name' => Str::before($emailKey, '@'),
+            ])->save();
+        }
 
         $user->markEmailAsVerified();
         event(new Verified($user));

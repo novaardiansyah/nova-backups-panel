@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\SendLoginOtpEmail;
 use App\Jobs\SendRegisterOtpEmail;
 use App\Jobs\SendResetPasswordOtpEmail;
 use App\Support\OtpRateLimiter;
@@ -26,6 +27,27 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function hasPassword(): bool
+    {
+        return is_string($this->password) && $this->password !== '';
+    }
+
+    public function sendLoginOtpNotification(): void
+    {
+        $emailKey = strtolower(trim($this->email));
+        $lockKey = 'auth:otp:login:lock:' . $emailKey;
+        if (! Cache::add($lockKey, true, 5)) {
+            return;
+        }
+
+        $otp = sprintf('%06d', random_int(100000, 999999));
+
+        Cache::put('auth:otp:login:' . $emailKey, $otp, now()->addMinutes(10));
+        OtpRateLimiter::hit('login-otp', $emailKey);
+
+        SendLoginOtpEmail::dispatch($otp, $this->name, $this->email, '10 minutes');
     }
 
     public function sendEmailVerificationNotification(): void

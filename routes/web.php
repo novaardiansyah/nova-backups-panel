@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('home');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login/identify', [AuthController::class, 'identifyLogin'])->middleware('guest')->name('login.identify');
+Route::post('/login/otp/send', [AuthController::class, 'sendLoginOtp'])->middleware('guest')->name('login.otp.send');
+Route::post('/login/otp', [AuthController::class, 'loginWithOtp'])->middleware('guest')->name('login.otp');
 Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
 Route::get('/register', [AuthController::class, 'showRegister'])->middleware('guest')->name('register');
 Route::post('/register', [AuthController::class, 'register'])->middleware('guest');

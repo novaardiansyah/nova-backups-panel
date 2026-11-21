@@ -5,24 +5,18 @@
   import { Button } from "@/components/ui/button/index.js";
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
-  import { PasswordInput } from "@/components/ui/password-input/index.js";
   import { Toast } from "@/components/ui/toast/index.js";
 
   let showGoogleToast = $state(false);
 
   const form = useForm({
-    name: "",
     email: "",
-    password: "",
-    password_confirmation: "",
     agree: false,
   });
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    form.post("/register", {
-      onFinish: () => form.reset("password", "password_confirmation"),
-    });
+    form.post("/register");
   }
 
   function handleGoogle() {
@@ -30,23 +24,8 @@
   }
 </script>
 
-<AuthShell title="Create your account" description="Start protecting your data with scheduled backups.">
+<AuthShell title="Create your account" description="Enter your email to get started with a verification code.">
   <form class="grid gap-5" onsubmit={handleSubmit} novalidate>
-    <div class="grid gap-2">
-      <Label for="full-name">Full name</Label>
-      <Input
-        id="full-name"
-        type="text"
-        placeholder="Jane Doe"
-        autocomplete="name"
-        bind:value={form.name}
-        aria-invalid={Boolean(form.errors.name)}
-      />
-      {#if form.errors.name}
-        <p class="text-xs text-destructive">{form.errors.name}</p>
-      {/if}
-    </div>
-
     <div class="grid gap-2">
       <Label for="email">Email</Label>
       <Input
@@ -59,34 +38,6 @@
       />
       {#if form.errors.email}
         <p class="text-xs text-destructive">{form.errors.email}</p>
-      {/if}
-    </div>
-
-    <div class="grid gap-2">
-      <Label for="password">Password</Label>
-      <PasswordInput
-        id="password"
-        placeholder="Create a strong password"
-        autocomplete="new-password"
-        bind:value={form.password}
-        aria-invalid={Boolean(form.errors.password)}
-      />
-      {#if form.errors.password}
-        <p class="text-xs text-destructive">{form.errors.password}</p>
-      {/if}
-    </div>
-
-    <div class="grid gap-2">
-      <Label for="confirm-password">Confirm password</Label>
-      <PasswordInput
-        id="confirm-password"
-        placeholder="Repeat your password"
-        autocomplete="new-password"
-        bind:value={form.password_confirmation}
-        aria-invalid={Boolean(form.errors.password_confirmation)}
-      />
-      {#if form.errors.password_confirmation}
-        <p class="text-xs text-destructive">{form.errors.password_confirmation}</p>
       {/if}
     </div>
 
@@ -114,7 +65,7 @@
     </div>
 
     <Button type="submit" class="w-full" disabled={form.processing}>
-      {form.processing ? "Creating account…" : "Create account"}
+      {form.processing ? "Sending code…" : "Continue"}
     </Button>
 
     <div class="flex justify-center">
@@ -133,6 +84,6 @@
 <Toast
   open={showGoogleToast}
   title="Feature in development"
-  description="Google sign-up is still under development and not available yet. Please create your account using the manual registration form."
+  description="Google sign-up is still under development and not available yet. Please create your account using your email address."
   onclose={() => (showGoogleToast = false)}
 />
