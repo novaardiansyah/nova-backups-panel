@@ -35,11 +35,22 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $user?->loadMissing('preference');
+        $locale = $user?->preferredLocale() ?? 'en';
+        $theme = $user?->preferredTheme() ?? 'system';
+
+        app()->setLocale($locale);
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+            ],
+            'preferences' => [
+                'theme' => $theme,
+                'locale' => $locale,
             ],
         ];
     }

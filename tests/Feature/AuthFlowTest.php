@@ -89,6 +89,26 @@ class AuthFlowTest extends TestCase
         ]);
         $profileResponse->assertRedirect();
         $this->assertSame('Nova Updated', $freshUser->fresh()->name);
+
+        $preferencesResponse = $this->actingAs($freshUser)->put(route('client.preferences.update'), [
+            'theme' => 'dark',
+            'locale' => 'id',
+        ]);
+        $preferencesResponse->assertRedirect();
+        $reloadedUser = $freshUser->fresh();
+        $this->assertSame('dark', $reloadedUser->preferredTheme());
+        $this->assertSame('id', $reloadedUser->preferredLocale());
+        $this->assertDatabaseHas('user_preferences', [
+            'user_id' => $freshUser->id,
+            'theme' => 'dark',
+            'locale' => 'id',
+        ]);
+
+        $invalidPreferencesResponse = $this->actingAs($freshUser)->put(route('client.preferences.update'), [
+            'theme' => 'neon',
+            'locale' => 'fr',
+        ]);
+        $invalidPreferencesResponse->assertSessionHasErrors(['theme', 'locale']);
     }
 
     public function test_identify_login_shows_password_step_when_user_has_password(): void

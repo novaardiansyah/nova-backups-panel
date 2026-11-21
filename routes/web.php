@@ -24,6 +24,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/client', [ClientAreaController::class, 'index'])->name('client.area');
     Route::put('/client/profile', [ClientAreaController::class, 'updateProfile'])->name('client.profile.update');
+    Route::put('/client/preferences', [ClientAreaController::class, 'updatePreferences'])->name('client.preferences.update');
     Route::post('/onboarding', [ClientAreaController::class, 'completeOnboarding'])->name('onboarding.store');
     Route::post('/onboarding/skip', [ClientAreaController::class, 'skipOnboarding'])->name('onboarding.skip');
 });

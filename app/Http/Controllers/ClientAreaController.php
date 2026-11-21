@@ -15,6 +15,7 @@ class ClientAreaController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $user->loadMissing('preference');
 
         return Inertia::render('client/ClientArea', [
             'user' => [
@@ -24,6 +25,8 @@ class ClientAreaController extends Controller
                 'emailVerifiedAt' => $user->email_verified_at?->toIso8601String(),
                 'createdAt' => $user->created_at?->toIso8601String(),
                 'hasPassword' => $user->hasPassword(),
+                'theme' => $user->preferredTheme(),
+                'locale' => $user->preferredLocale(),
             ],
             'showOnboarding' => (bool) $request->session()->get('show_onboarding', false),
             'onboardingCompleted' => (bool) $request->session()->get('onboarding_completed', false),
@@ -71,6 +74,36 @@ class ClientAreaController extends Controller
         $user->forceFill($attributes)->save();
 
         return back()->with('status', 'Profile updated successfully.');
+    }
+
+    public function updatePreferences(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user instanceof User) {
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'theme' => ['required', 'string', 'in:light,dark,system'],
+            'locale' => ['required', 'string', 'in:en,id'],
+        ]);
+
+        $user->preference()->updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'theme' => $validated['theme'],
+                'locale' => $validated['locale'],
+            ],
+        );
+
+        app()->setLocale($validated['locale']);
+
+        return back()->with(
+            'status',
+            $validated['locale'] === 'id'
+                ? 'Preferensi berhasil disimpan.'
+                : 'Preferences saved successfully.',
+        );
     }
 
     public function completeOnboarding(Request $request): RedirectResponse

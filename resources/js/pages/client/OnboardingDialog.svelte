@@ -115,7 +115,7 @@
             {:else if step === 2}
               Create a password
             {:else}
-              Welcome to Nova Backups!
+              Welcome aboard!
             {/if}
           </CardTitle>
           <CardDescription>

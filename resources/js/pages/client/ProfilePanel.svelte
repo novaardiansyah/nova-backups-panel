@@ -4,6 +4,8 @@
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
   import { PasswordInput } from "@/components/ui/password-input/index.js";
+  import { getClientTranslations } from "@/lib/i18n.js";
+  import type { LocalePreference, ThemePreference } from "@/lib/theme.js";
 
   export interface ClientUser {
     id: number;
@@ -12,6 +14,8 @@
     emailVerifiedAt: string | null;
     createdAt: string | null;
     hasPassword: boolean;
+    theme: ThemePreference;
+    locale: LocalePreference;
   }
 
   interface Props {
@@ -20,6 +24,8 @@
   }
 
   let { user, status = null }: Props = $props();
+
+  const copy = $derived(getClientTranslations(user.locale));
 
   const form = useForm({
     name: "",
@@ -69,25 +75,25 @@
         </svg>
       </span>
       <div class="min-w-0">
-        <h2 class="text-lg font-semibold tracking-tight text-ink">Profile</h2>
+        <h2 class="text-lg font-semibold tracking-tight text-ink">{copy.profile.title}</h2>
         <p class="mt-1 text-sm leading-6 text-muted">
-          Manage your account details and password settings.
+          {copy.profile.description}
         </p>
       </div>
     </div>
 
     <dl class="mt-5 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2">
       <div class="bg-page px-4 py-3">
-        <dt class="text-[10px] uppercase tracking-[0.1em] text-faint">Member since</dt>
+        <dt class="text-[10px] uppercase tracking-[0.1em] text-faint">{copy.profile.memberSince}</dt>
         <dd class="mt-1 text-sm text-ink">{formatDateTime(user.createdAt)}</dd>
       </div>
       <div class="bg-page px-4 py-3">
-        <dt class="text-[10px] uppercase tracking-[0.1em] text-faint">Status</dt>
+        <dt class="text-[10px] uppercase tracking-[0.1em] text-faint">{copy.profile.status}</dt>
         <dd class="mt-1 flex items-center gap-1.5 text-sm text-ink">
           <span
             class="h-1.5 w-1.5 rounded-full {user.emailVerifiedAt === null ? 'bg-danger' : 'bg-accent'}"
           ></span>
-          {user.emailVerifiedAt === null ? "Unverified" : "Verified"}
+          {user.emailVerifiedAt === null ? copy.profile.unverified : copy.profile.verified}
         </dd>
       </div>
     </dl>
@@ -107,11 +113,11 @@
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="grid gap-2">
-          <Label for="profile-name">Full name</Label>
+          <Label for="profile-name">{copy.profile.fullName}</Label>
           <Input
             id="profile-name"
             type="text"
-            placeholder="Your full name"
+            placeholder={copy.profile.fullNamePlaceholder}
             autocomplete="name"
             bind:value={form.name}
             disabled={form.processing}
@@ -123,7 +129,7 @@
         </div>
 
         <div class="grid gap-2">
-          <Label for="profile-email">Email</Label>
+          <Label for="profile-email">{copy.profile.email}</Label>
           <Input
             id="profile-email"
             type="email"
@@ -135,27 +141,27 @@
         </div>
       </div>
       <p class="text-xs leading-5 text-faint">
-        Your email address is used for sign-in and verification and cannot be changed here.
+        {copy.profile.emailHint}
       </p>
     </div>
 
     <div class="mt-6 border-t border-line pt-5">
       <h3 class="text-sm font-semibold text-ink">
-        {user.hasPassword ? "Change password" : "Set a password"}
+        {user.hasPassword ? copy.profile.changePasswordTitle : copy.profile.setPasswordTitle}
       </h3>
       <p class="mt-1 text-xs leading-5 text-faint">
         {user.hasPassword
-          ? "Leave blank if you do not want to change your current password."
-          : "You do not have a password set yet. Create one to enable password sign-in."}
+          ? copy.profile.changePasswordDescription
+          : copy.profile.setPasswordDescription}
       </p>
 
       <div class="mt-4 grid gap-4 {user.hasPassword ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}">
         {#if user.hasPassword}
           <div class="grid gap-2">
-            <Label for="profile-current-password">Current password</Label>
+            <Label for="profile-current-password">{copy.profile.currentPassword}</Label>
             <PasswordInput
               id="profile-current-password"
-              placeholder="Current password"
+              placeholder={copy.profile.currentPasswordPlaceholder}
               autocomplete="current-password"
               bind:value={form.current_password}
               disabled={form.processing}
@@ -168,10 +174,10 @@
         {/if}
 
         <div class="grid gap-2">
-          <Label for="profile-new-password">New password</Label>
+          <Label for="profile-new-password">{copy.profile.newPassword}</Label>
           <PasswordInput
             id="profile-new-password"
-            placeholder="Minimum 8 characters"
+            placeholder={copy.profile.newPasswordPlaceholder}
             autocomplete="new-password"
             bind:value={form.password}
             disabled={form.processing}
@@ -183,10 +189,10 @@
         </div>
 
         <div class="grid gap-2">
-          <Label for="profile-confirm-password">Confirm password</Label>
+          <Label for="profile-confirm-password">{copy.profile.confirmPassword}</Label>
           <PasswordInput
             id="profile-confirm-password"
-            placeholder="Repeat new password"
+            placeholder={copy.profile.confirmPasswordPlaceholder}
             autocomplete="new-password"
             bind:value={form.password_confirmation}
             disabled={form.processing}
@@ -201,7 +207,7 @@
 
     <div class="mt-5 flex">
       <Button type="submit" class="w-full sm:w-auto" disabled={form.processing}>
-        {form.processing ? "Saving…" : "Save changes"}
+        {form.processing ? copy.profile.saving : copy.profile.save}
       </Button>
     </div>
   </form>

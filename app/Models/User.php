@@ -11,6 +11,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Cache;
@@ -27,6 +28,25 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function preference(): HasOne
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
+    public function preferredTheme(): string
+    {
+        $theme = $this->preference?->theme;
+
+        return in_array($theme, ['light', 'dark', 'system'], true) ? $theme : 'system';
+    }
+
+    public function preferredLocale(): string
+    {
+        $locale = $this->preference?->locale;
+
+        return in_array($locale, ['en', 'id'], true) ? $locale : 'en';
     }
 
     public function hasPassword(): bool

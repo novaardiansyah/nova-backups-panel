@@ -1,10 +1,13 @@
 <script lang="ts">
   import { router } from "@inertiajs/svelte";
   import ThemeToggle from "@/components/auth/theme-toggle.svelte";
+  import { getClientTranslations } from "@/lib/i18n.js";
+  import { applyTheme } from "@/lib/theme.js";
   import OnboardingDialog from "./OnboardingDialog.svelte";
+  import PreferencesPanel from "./PreferencesPanel.svelte";
   import ProfilePanel, { type ClientUser } from "./ProfilePanel.svelte";
 
-  type ClientSection = "profile";
+  type ClientSection = "profile" | "preferences";
 
   interface ClientMenuItem {
     id: ClientSection;
@@ -25,9 +28,12 @@
     status = null,
   }: Props = $props();
 
-  const menu: ClientMenuItem[] = [
-    { id: "profile", label: "Profile" },
-  ];
+  const copy = $derived(getClientTranslations(user.locale));
+
+  const menu = $derived<ClientMenuItem[]>([
+    { id: "profile", label: copy.menu.profile },
+    { id: "preferences", label: copy.menu.preferences },
+  ]);
 
   const initials = $derived(
     user.name
@@ -41,6 +47,10 @@
   let active = $state<ClientSection>("profile");
   let signingOut = $state(false);
   let onboardingOpen = $state(false);
+
+  $effect(() => {
+    applyTheme(user.theme);
+  });
 
   $effect(() => {
     if (showOnboarding || onboardingCompleted) {
@@ -74,13 +84,13 @@
         </span>
         <div class="min-w-0">
           <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
-            Client Area
+            {copy.eyebrow}
           </p>
           <h1 class="mt-1 break-words [overflow-wrap:anywhere] text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-            Welcome back, {user.name}
+            {copy.greeting}, {user.name}
           </h1>
           <p class="mt-1 text-sm leading-6 text-muted">
-            Manage your Nova Backups account and security settings.
+            {copy.subtitle}
           </p>
         </div>
       </div>
@@ -91,7 +101,7 @@
     <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
       <aside class="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <div class="hidden rounded-xl border border-line bg-page-elevated p-2 lg:block">
-          <nav class="grid gap-0.5" aria-label="Client Area">
+          <nav class="grid gap-0.5" aria-label={copy.eyebrow}>
             {#each menu as item (item.id)}
               <button
                 type="button"
@@ -101,10 +111,17 @@
                 aria-current={active === item.id ? "page" : undefined}
                 onclick={() => (active = item.id)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
+                {#if item.id === "profile"}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                {:else}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                {/if}
                 {item.label}
               </button>
             {/each}
@@ -121,12 +138,12 @@
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" x2="9" y1="12" y2="12"/>
               </svg>
-              {signingOut ? "Signing out…" : "Logout"}
+              {signingOut ? copy.menu.signingOut : copy.menu.logout}
             </button>
           </div>
         </div>
 
-        <nav class="grid grid-cols-2 gap-1.5 lg:hidden" aria-label="Client Area">
+        <nav class="grid grid-cols-3 gap-1.5 lg:hidden" aria-label={copy.eyebrow}>
           {#each menu as item (item.id)}
             <button
               type="button"
@@ -136,10 +153,6 @@
               aria-current={active === item.id ? "page" : undefined}
               onclick={() => (active = item.id)}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5 shrink-0">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
               <span class="truncate">{item.label}</span>
             </button>
           {/each}
@@ -149,18 +162,17 @@
             onclick={handleLogout}
             disabled={signingOut}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5 shrink-0">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" x2="9" y1="12" y2="12"/>
-            </svg>
-            {signingOut ? "Signing out…" : "Logout"}
+            {signingOut ? copy.menu.signingOut : copy.menu.logout}
           </button>
         </nav>
       </aside>
 
       <div class="min-w-0">
-        <ProfilePanel {user} {status} />
+        {#if active === "profile"}
+          <ProfilePanel {user} {status} />
+        {:else}
+          <PreferencesPanel {user} {status} />
+        {/if}
       </div>
     </div>
   </section>
