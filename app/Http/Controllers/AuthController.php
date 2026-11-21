@@ -22,11 +22,17 @@ class AuthController extends Controller
 {
     public function showLogin(): Response
     {
+        $loginEmail = session('login_email');
+        $cooldownRemaining = is_string($loginEmail) && $loginEmail !== ''
+            ? (OtpRateLimiter::check('login-otp', strtolower(trim($loginEmail))) ?? 0)
+            : 0;
+
         return Inertia::render('Login', [
             'status' => session('status'),
             'loginStep' => session('login_step'),
-            'loginEmail' => session('login_email'),
+            'loginEmail' => $loginEmail,
             'hasPassword' => session('login_has_password', false),
+            'cooldownRemaining' => $cooldownRemaining,
         ]);
     }
 
@@ -225,6 +231,7 @@ class AuthController extends Controller
         return Inertia::render('VerifyEmail', [
             'email' => $user->email,
             'status' => session('status'),
+            'cooldownRemaining' => OtpRateLimiter::check('register-verification', strtolower(trim($user->email))) ?? 0,
         ]);
     }
 
@@ -351,6 +358,7 @@ class AuthController extends Controller
         return Inertia::render('ResetPassword', [
             'email' => $resetSession['email'],
             'status' => session('status'),
+            'cooldownRemaining' => OtpRateLimiter::check('password-reset', strtolower(trim($resetSession['email']))) ?? 0,
         ]);
     }
 

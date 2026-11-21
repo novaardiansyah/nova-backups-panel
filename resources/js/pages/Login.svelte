@@ -13,6 +13,7 @@
     loginStep?: "email" | "password" | "otp" | null;
     loginEmail?: string | null;
     hasPassword?: boolean;
+    cooldownRemaining?: number;
   }
 
   let {
@@ -20,19 +21,41 @@
     loginStep = null,
     loginEmail = null,
     hasPassword = false,
+    cooldownRemaining = 0,
   }: Props = $props();
 
-  let step = $state<"email" | "password" | "otp">(loginStep ?? "email");
-  let accountHasPassword = $state(hasPassword);
+  let step = $state<"email" | "password" | "otp">("email");
+  let accountHasPassword = $state(false);
   let sendingOtp = $state(false);
+  let remainingSeconds = $state(0);
   let showGoogleToast = $state(false);
 
   const form = useForm({
-    email: loginEmail ?? "",
+    email: "",
     password: "",
     otp: "",
     remember: true,
   });
+
+  $effect(() => {
+    remainingSeconds = Math.max(0, cooldownRemaining);
+  });
+
+  $effect(() => {
+    if (remainingSeconds <= 0) return;
+
+    const timer = setInterval(() => {
+      remainingSeconds = Math.max(0, remainingSeconds - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  });
+
+  function formatCountdown(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
 
   $effect(() => {
     if (loginStep) {
@@ -158,10 +181,10 @@
           <button
             type="button"
             onclick={handleSendOtp}
-            disabled={sendingOtp}
+            disabled={sendingOtp || remainingSeconds > 0}
             class="cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {sendingOtp ? "Sending…" : "Resend code"}
+            {sendingOtp ? "Sending…" : remainingSeconds > 0 ? `Resend in ${formatCountdown(remainingSeconds)}` : "Resend code"}
           </button>
         </div>
         <Input

@@ -22,16 +22,12 @@ class OtpRateLimiter
         $cooldownKey = 'auth:otp:cooldown:' . $action . ':' . $hash;
 
         $attempts = (int) Cache::get($attemptsKey, 0) + 1;
-        Cache::put($attemptsKey, $attempts, now()->addHours(2));
 
-        $cooldownSeconds = match (true) {
-            $attempts === 1 => 60,
-            $attempts === 2 => 120,
-            $attempts === 3 => 300,
-            $attempts === 4 => 600,
-            default => 1800,
-        };
+        $cooldownSeconds = $attempts === 1
+            ? 120
+            : (15 + (($attempts - 2) * 5)) * 60;
 
+        Cache::put($attemptsKey, $attempts, now()->addSeconds(max(86400, $cooldownSeconds + 3600)));
         Cache::put($cooldownKey, time() + $cooldownSeconds, now()->addSeconds($cooldownSeconds));
 
         return $cooldownSeconds;

@@ -9,11 +9,33 @@
   interface Props {
     email: string;
     status?: string | null;
+    cooldownRemaining?: number;
   }
 
-  let { email, status = null }: Props = $props();
+  let { email, status = null, cooldownRemaining = 0 }: Props = $props();
 
   let resending = $state(false);
+  let remainingSeconds = $state(0);
+
+  $effect(() => {
+    remainingSeconds = Math.max(0, cooldownRemaining);
+  });
+
+  $effect(() => {
+    if (remainingSeconds <= 0) return;
+
+    const timer = setInterval(() => {
+      remainingSeconds = Math.max(0, remainingSeconds - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  });
+
+  function formatCountdown(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
 
   const form = useForm({
     otp: "",
@@ -29,9 +51,17 @@
   }
 
   function handleResend() {
+    if (resending || remainingSeconds > 0) return;
+
     resending = true;
+    form.clearErrors("otp");
     router.post("/reset-password/resend", {}, {
       preserveScroll: true,
+      onError: (errors) => {
+        if (errors.otp) {
+          form.setError("otp", errors.otp);
+        }
+      },
       onFinish: () => {
         resending = false;
       },
@@ -60,10 +90,10 @@
         <button
           type="button"
           onclick={handleResend}
-          disabled={resending}
+          disabled={resending || remainingSeconds > 0}
           class="cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {resending ? "Sending…" : "Resend code"}
+          {resending ? "Sending…" : remainingSeconds > 0 ? `Resend in ${formatCountdown(remainingSeconds)}` : "Resend code"}
         </button>
       </div>
       <Input
