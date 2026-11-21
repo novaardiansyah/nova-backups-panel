@@ -66,7 +66,5 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('/onboarding', [ClientAreaController::class, 'completeOnboarding'])->name('onboarding.store');
     Route::post('/onboarding/skip', [ClientAreaController::class, 'skipOnboarding'])->name('onboarding.skip');
 });
-Route::get('/terms', [AuthController::class, 'showTerms'])->name('terms');
 Route::get('/terms-of-service', [AuthController::class, 'showTerms'])->name('terms.service');
-Route::get('/privacy', [AuthController::class, 'showPrivacy'])->name('privacy');
 Route::get('/privacy-policy', [AuthController::class, 'showPrivacy'])->name('privacy.policy');

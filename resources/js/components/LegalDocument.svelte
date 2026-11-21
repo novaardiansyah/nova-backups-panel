@@ -77,7 +77,7 @@
   <div class="border-b border-line bg-page-elevated/80 backdrop-blur-sm">
     <div class="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-6 lg:px-8">
       <div class="flex items-center gap-4 text-sm">
-        <Link href="/login" class="font-semibold tracking-tight text-ink hover:text-accent">
+        <Link href="/" class="font-semibold tracking-tight text-ink hover:text-accent">
           Nova Backups
         </Link>
         <span class="text-line-strong">/</span>
