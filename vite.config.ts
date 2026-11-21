@@ -31,6 +31,7 @@ export default defineConfig({
         svelte(),
         wayfinder({
             formVariants: true,
+            command: 'command -v php >/dev/null 2>&1 && php artisan wayfinder:generate || true',
         }),
     ]),
     resolve: {
