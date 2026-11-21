@@ -1,7 +1,10 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import Footer from "@/components/Footer.svelte";
+  import LocaleToggle from "@/components/auth/locale-toggle.svelte";
   import ThemeToggle from "@/components/auth/theme-toggle.svelte";
   import type { LegalDocument } from "@/data/legal.js";
+  import type { LocalePreference } from "@/lib/theme.js";
 
   interface Props {
     doc: LegalDocument;
@@ -9,6 +12,7 @@
 
   let { doc }: Props = $props();
 
+  let lang = $state<LocalePreference>("en");
   let activeId = $state("");
 
   $effect(() => {
@@ -77,17 +81,25 @@
   <div class="border-b border-line bg-page-elevated/80 backdrop-blur-sm">
     <div class="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-6 lg:px-8">
       <div class="flex items-center gap-4 text-sm">
-        <Link href="/" class="font-semibold tracking-tight text-ink hover:text-accent">
-          Nova Backups
+        <Link href="/" class="flex items-center gap-2.5 font-semibold tracking-tight text-ink hover:text-accent">
+          <img
+            src="/logo.png"
+            alt=""
+            width="28"
+            height="28"
+            class="h-7 w-7 rounded-[7px] object-contain"
+          />
+          <span>Nova Backups</span>
         </Link>
         <span class="text-line-strong">/</span>
         <span class="text-muted">{doc.title}</span>
       </div>
-      <div class="flex items-center gap-3">
-        <Link href="/login" class="text-sm font-medium text-accent hover:underline">
+      <div class="flex items-center gap-1 sm:gap-2">
+        <ThemeToggle />
+        <LocaleToggle bind:lang />
+        <Link href="/login" class="ml-1 text-sm font-medium text-accent hover:underline">
           Sign in
         </Link>
-        <ThemeToggle />
       </div>
     </div>
   </div>
@@ -182,4 +194,6 @@
       </div>
     </div>
   </article>
+
+  <Footer {lang} />
 </div>
