@@ -56,11 +56,11 @@
   const copy = $derived(getClientTranslations(user.locale));
 
   const menu = $derived<ClientMenuItem[]>([
+    { id: "profile", label: copy.menu.profile },
     { id: "backups", label: copy.menu.backups },
     { id: "schedules", label: copy.menu.backupSchedules },
     { id: "storages", label: copy.menu.backupStorages },
     { id: "providers", label: copy.menu.backupStorageProviders },
-    { id: "profile", label: copy.menu.profile },
     { id: "preferences", label: copy.menu.preferences },
   ]);
 
@@ -78,6 +78,7 @@
   let onboardingOpen = $state(false);
   let toastOpen = $state(false);
   let toastMessage = $state("");
+  let homeToastOpen = $state(false);
 
   $effect(() => {
     applyTheme(user.theme);
@@ -100,6 +101,10 @@
       onboardingOpen = true;
     }
   });
+
+  function handleBackToHome() {
+    homeToastOpen = true;
+  }
 
   function handleLogout() {
     if (signingOut) return;
@@ -198,6 +203,17 @@
           <div class="mt-1 border-t border-line pt-1">
             <button
               type="button"
+              class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2.5 text-left text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
+              onclick={handleBackToHome}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-faint">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              {copy.menu.backToHome}
+            </button>
+            <button
+              type="button"
               class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2.5 text-left text-sm font-medium text-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
               onclick={handleLogout}
               disabled={signingOut}
@@ -225,6 +241,13 @@
               <span class="truncate">{item.label}</span>
             </button>
           {/each}
+          <button
+            type="button"
+            class="col-span-2 inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-line px-2 py-2.5 text-xs font-semibold text-muted transition-colors hover:bg-surface hover:text-ink sm:col-span-3"
+            onclick={handleBackToHome}
+          >
+            {copy.menu.backToHome}
+          </button>
           <button
             type="button"
             class="col-span-2 inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-line px-2 py-2.5 text-xs font-semibold text-danger transition-colors hover:bg-danger-soft disabled:opacity-60 sm:col-span-3"
@@ -267,4 +290,11 @@
   title={user.locale === "id" ? "Notifikasi" : "Notification"}
   description={toastMessage}
   onclose={() => (toastOpen = false)}
+/>
+
+<Toast
+  open={homeToastOpen}
+  title={copy.menu.homeUnavailableTitle}
+  description={copy.menu.homeUnavailableDescription}
+  onclose={() => (homeToastOpen = false)}
 />

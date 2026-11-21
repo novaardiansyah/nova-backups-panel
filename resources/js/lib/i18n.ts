@@ -11,6 +11,9 @@ export interface ClientTranslations {
     backupStorageProviders: string;
     profile: string;
     preferences: string;
+    backToHome: string;
+    homeUnavailableTitle: string;
+    homeUnavailableDescription: string;
     logout: string;
     signingOut: string;
   };
@@ -73,6 +76,9 @@ export const clientTranslations: Record<LocalePreference, ClientTranslations> = 
       backupStorageProviders: "Storage Providers",
       profile: "Profile",
       preferences: "Preferences",
+      backToHome: "Back to home",
+      homeUnavailableTitle: "Feature in development",
+      homeUnavailableDescription: "The home page is still under development and not available yet.",
       logout: "Logout",
       signingOut: "Signing out…",
     },
@@ -133,6 +139,9 @@ export const clientTranslations: Record<LocalePreference, ClientTranslations> = 
       backupStorageProviders: "Penyedia Storage",
       profile: "Profil",
       preferences: "Preferensi",
+      backToHome: "Kembali ke beranda",
+      homeUnavailableTitle: "Fitur dalam pengembangan",
+      homeUnavailableDescription: "Halaman beranda masih dalam tahap pengembangan dan belum tersedia saat ini.",
       logout: "Keluar",
       signingOut: "Sedang keluar…",
     },
