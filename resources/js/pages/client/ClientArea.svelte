@@ -161,7 +161,7 @@
 <div class="min-h-screen bg-page text-ink">
   <section class="mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-14">
     <header class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex min-w-0 items-center gap-4">
+      <div class="flex min-w-0 flex-1 items-center gap-4">
         <span
           class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-page-elevated text-sm font-semibold text-accent"
         >

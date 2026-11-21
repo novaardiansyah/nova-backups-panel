@@ -14,7 +14,7 @@
   let { title, description, children }: Props = $props();
 </script>
 
-<div class="relative flex min-h-screen items-center justify-center overflow-hidden bg-page px-4 py-10 text-ink">
+<div class="relative flex min-h-screen items-center justify-center overflow-hidden bg-page px-4 pt-16 pb-10 text-ink sm:py-10">
   <div class="pointer-events-none absolute inset-0" aria-hidden="true">
     <div class="absolute left-1/2 top-[-12rem] h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-accent-soft blur-3xl"></div>
   </div>

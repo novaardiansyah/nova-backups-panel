@@ -380,7 +380,7 @@
     aria-modal="true"
     aria-labelledby="schedule-dialog-title"
     tabindex="-1"
-    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+    class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
   >
     <button
       type="button"
@@ -694,7 +694,7 @@
     aria-modal="true"
     aria-labelledby="schedule-detail-dialog-title"
     tabindex="-1"
-    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+    class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
   >
     <button
       type="button"
@@ -723,7 +723,7 @@
                 />
               </div>
               <div class="flex items-center gap-1.5">
-                <CardDescription class="font-mono text-xs">
+                <CardDescription class="break-all font-mono text-xs">
                   UID: {detailSchedule.uid}
                 </CardDescription>
                 <button

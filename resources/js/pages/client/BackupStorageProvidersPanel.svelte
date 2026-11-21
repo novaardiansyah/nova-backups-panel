@@ -292,7 +292,7 @@
     aria-modal="true"
     aria-labelledby="provider-dialog-title"
     tabindex="-1"
-    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+    class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
   >
     <button
       type="button"
@@ -378,7 +378,7 @@
               {#if keyRows.length > 0}
                 <div class="mt-3 space-y-2" transition:slide={{ duration: 200 }}>
                   {#each keyRows as row, index (index)}
-                    <div class="grid grid-cols-[2fr_3fr_auto] gap-2" transition:slide={{ duration: 150 }}>
+                    <div class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] gap-2" transition:slide={{ duration: 150 }}>
                       <Input type="text" placeholder="Key" bind:value={row.key} />
                       <Input type="text" placeholder="Value" bind:value={row.value} />
                       <Button

@@ -22,6 +22,7 @@
   let activeShowcase = $state(0);
   const activeItem = $derived(showcaseItems[activeShowcase]);
 
+  let mobileNavOpen = $state(false);
   let zoomedImage = $state<{ src: string; alt: string; title: string } | null>(null);
   let isFullResolution = $state(false);
 
@@ -149,8 +150,46 @@
             {content.nav.getStarted}
           </Link>
         {/if}
+
+        <button
+          type="button"
+          class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-ink md:hidden"
+          onclick={() => (mobileNavOpen = !mobileNavOpen)}
+          aria-label="Toggle navigation menu"
+          aria-expanded={mobileNavOpen}
+        >
+          {#if mobileNavOpen}
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          {:else}
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+              <line x1="4" x2="20" y1="12" y2="12"/>
+              <line x1="4" x2="20" y1="6" y2="6"/>
+              <line x1="4" x2="20" y1="18" y2="18"/>
+            </svg>
+          {/if}
+        </button>
       </div>
     </div>
+
+    {#if mobileNavOpen}
+      <nav class="border-t border-line bg-page-elevated px-5 py-3 md:hidden" aria-label="Mobile">
+        <div class="grid gap-1 text-sm">
+          <a href="#product" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.showcase}</a>
+          <a href="#features" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.workflow}</a>
+          <a href="#capabilities" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.capabilities}</a>
+          <a href="#architecture" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.architecture}</a>
+          <a href="#faq" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.faq}</a>
+          {#if !isAuthenticated}
+            <Link href="/login" onclick={() => (mobileNavOpen = false)} class="mt-1 rounded-md border border-line px-2.5 py-2 text-center font-medium text-ink transition-colors hover:bg-surface-muted sm:hidden">
+              {content.nav.signIn}
+            </Link>
+          {/if}
+        </div>
+      </nav>
+    {/if}
   </header>
 
   <!-- Hero -->
@@ -269,7 +308,7 @@
   <section id="product" class="relative scroll-mt-20 py-14 sm:py-24">
     <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
       <div class="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16">
-        <div class="lg:sticky lg:top-24 lg:self-start">
+        <div class="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
             {content.showcase.eyebrow}
           </p>
@@ -310,7 +349,7 @@
           </div>
         </div>
 
-        <div id="showcase-panel" role="tabpanel" aria-labelledby={`showcase-tab-${activeShowcase}`}>
+        <div id="showcase-panel" role="tabpanel" aria-labelledby={`showcase-tab-${activeShowcase}`} class="min-w-0">
           <figure class="overflow-hidden rounded-xl border border-line-strong bg-surface p-1.5 shadow-xl shadow-black/10 dark:shadow-black/40">
             <div class="overflow-hidden rounded-lg border border-line bg-surface-muted">
               <div class="flex h-9 items-center gap-2 border-b border-line px-3.5">
@@ -617,8 +656,8 @@
 
   <!-- FAQ -->
   <section id="faq" class="relative scroll-mt-20 border-t border-line py-14 sm:py-24">
-    <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
-      <div class="max-w-2xl">
+    <div class="mx-auto w-full max-w-4xl px-5 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
         <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
           {content.faq.eyebrow}
         </p>

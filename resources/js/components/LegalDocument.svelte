@@ -77,11 +77,11 @@
   </ol>
 {/snippet}
 
-<div class="min-h-screen bg-page text-ink">
+<div class="min-h-screen overflow-x-clip bg-page text-ink">
   <div class="border-b border-line bg-page-elevated/80 backdrop-blur-sm">
-    <div class="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-4 text-sm">
-        <Link href="/" class="flex items-center gap-2.5 font-semibold tracking-tight text-ink hover:text-accent">
+    <div class="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3.5 sm:gap-4 sm:px-6 lg:px-8">
+      <div class="flex min-w-0 items-center gap-3 text-sm sm:gap-4">
+        <Link href="/" class="flex shrink-0 items-center gap-2.5 font-semibold tracking-tight text-ink hover:text-accent">
           <img
             src="/logo.png"
             alt=""
@@ -91,10 +91,10 @@
           />
           <span>Nova Backups</span>
         </Link>
-        <span class="text-line-strong">/</span>
-        <span class="text-muted">{doc.title}</span>
+        <span class="hidden text-line-strong sm:inline">/</span>
+        <span class="hidden truncate text-muted sm:inline">{doc.title}</span>
       </div>
-      <div class="flex items-center gap-1 sm:gap-2">
+      <div class="flex shrink-0 items-center gap-1 sm:gap-2">
         <ThemeToggle />
         <LocaleToggle bind:lang />
         <Link href="/login" class="ml-1 text-sm font-medium text-accent hover:underline">
