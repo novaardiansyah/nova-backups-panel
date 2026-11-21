@@ -5,6 +5,10 @@ export interface ClientTranslations {
   greeting: string;
   subtitle: string;
   menu: {
+    backups: string;
+    backupSchedules: string;
+    backupStorages: string;
+    backupStorageProviders: string;
     profile: string;
     preferences: string;
     logout: string;
@@ -63,6 +67,10 @@ export const clientTranslations: Record<LocalePreference, ClientTranslations> = 
     greeting: "Welcome back",
     subtitle: "Manage your account, preferences, and security settings.",
     menu: {
+      backups: "Backups",
+      backupSchedules: "Backup Schedules",
+      backupStorages: "Backup Storage",
+      backupStorageProviders: "Storage Providers",
       profile: "Profile",
       preferences: "Preferences",
       logout: "Logout",
@@ -119,6 +127,10 @@ export const clientTranslations: Record<LocalePreference, ClientTranslations> = 
     greeting: "Selamat datang kembali",
     subtitle: "Kelola akun, preferensi tampilan, dan pengaturan keamanan Anda.",
     menu: {
+      backups: "Backup",
+      backupSchedules: "Jadwal Backup",
+      backupStorages: "Penyimpanan Backup",
+      backupStorageProviders: "Penyedia Storage",
       profile: "Profil",
       preferences: "Preferensi",
       logout: "Keluar",
