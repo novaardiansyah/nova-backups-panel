@@ -25,7 +25,7 @@ class OtpRateLimiter
 
         $cooldownSeconds = $attempts === 1
             ? 120
-            : (15 + (($attempts - 2) * 5)) * 60;
+            : ($attempts - 1) * 5 * 60;
 
         Cache::put($attemptsKey, $attempts, now()->addSeconds(max(86400, $cooldownSeconds + 3600)));
         Cache::put($cooldownKey, time() + $cooldownSeconds, now()->addSeconds($cooldownSeconds));

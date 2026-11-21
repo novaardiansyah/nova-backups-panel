@@ -25,13 +25,16 @@ class OtpRateLimiterTest extends TestCase
         $this->assertNotNull(OtpRateLimiter::check('login-otp', $email));
 
         $secondCooldown = OtpRateLimiter::hit('login-otp', $email);
-        $this->assertSame(900, $secondCooldown);
+        $this->assertSame(300, $secondCooldown);
 
         $thirdCooldown = OtpRateLimiter::hit('login-otp', $email);
-        $this->assertSame(1200, $thirdCooldown);
+        $this->assertSame(600, $thirdCooldown);
 
         $fourthCooldown = OtpRateLimiter::hit('login-otp', $email);
-        $this->assertSame(1500, $fourthCooldown);
+        $this->assertSame(900, $fourthCooldown);
+
+        $fifthCooldown = OtpRateLimiter::hit('login-otp', $email);
+        $this->assertSame(1200, $fifthCooldown);
 
         OtpRateLimiter::clear('login-otp', $email);
         $this->assertNull(OtpRateLimiter::check('login-otp', $email));

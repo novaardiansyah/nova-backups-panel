@@ -50,11 +50,11 @@
         />
         <span>
           I agree to the
-          <Link href="/terms" class="cursor-pointer font-medium text-accent hover:underline">
+          <Link href="/terms-of-service" class="cursor-pointer font-medium text-accent hover:underline">
             Terms of Service
           </Link>
           and
-          <Link href="/privacy" class="cursor-pointer font-medium text-accent hover:underline">
+          <Link href="/privacy-policy" class="cursor-pointer font-medium text-accent hover:underline">
             Privacy Policy
           </Link>.
         </span>
