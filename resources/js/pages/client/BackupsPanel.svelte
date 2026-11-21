@@ -1,7 +1,13 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { router } from "@inertiajs/svelte";
   import { Button } from "@/components/ui/button/index.js";
   import type { BackupItem } from "@/lib/backup-types.js";
+  import { getButtonMenuStyle, getContextMenuStyle } from "@/lib/context-menu.js";
+  import { restoreDialogAction, setActionParams } from "@/lib/url-state.js";
+  import ActionMenu from "./ActionMenu.svelte";
+  import DeleteConfirmDialog from "./DeleteConfirmDialog.svelte";
+  import StatusBadge from "./StatusBadge.svelte";
 
   interface Props {
     backups: BackupItem[];
@@ -11,6 +17,17 @@
   let { backups, onstatus }: Props = $props();
 
   let deletingId = $state<number | null>(null);
+  let menuBackup = $state<BackupItem | null>(null);
+  let menuStyle = $state("");
+  let confirmDeleteBackup = $state<BackupItem | null>(null);
+
+  onMount(() => {
+    restoreDialogAction(backups, {
+      onDelete: (backup) => {
+        confirmDeleteBackup = backup;
+      },
+    });
+  });
 
   function formatBytes(bytes: number | null): string {
     if (bytes === null || bytes <= 0) return "—";
@@ -45,8 +62,49 @@
       },
       onFinish: () => {
         deletingId = null;
+        confirmDeleteBackup = null;
+        setActionParams(null);
       },
     });
+  }
+
+  function openContextMenu(event: MouseEvent, backup: BackupItem) {
+    event.preventDefault();
+    menuStyle = getContextMenuStyle(event, 160, 48);
+    menuBackup = backup;
+  }
+
+  function openButtonMenu(event: MouseEvent, backup: BackupItem) {
+    event.stopPropagation();
+    if (menuBackup?.id === backup.id) {
+      closeMenu();
+      return;
+    }
+    menuStyle = getButtonMenuStyle(event.currentTarget as HTMLElement, 160, 48);
+    menuBackup = backup;
+  }
+
+  function closeMenu() {
+    menuBackup = null;
+  }
+
+  function handleMenuDelete() {
+    if (!menuBackup) return;
+    const backup = menuBackup;
+    closeMenu();
+    confirmDeleteBackup = backup;
+    setActionParams("delete", backup.uid);
+  }
+
+  function closeConfirmDelete() {
+    if (deletingId !== null) return;
+    confirmDeleteBackup = null;
+    setActionParams(null);
+  }
+
+  function confirmDelete() {
+    if (!confirmDeleteBackup) return;
+    handleDelete(confirmDeleteBackup.id);
   }
 </script>
 
@@ -80,27 +138,33 @@
         </p>
       </div>
     {:else}
-      <div class="space-y-3">
+      <div role="list" class="space-y-3">
         {#each backups as backup (backup.id)}
-          <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-page p-4">
+          <div
+            role="listitem"
+            oncontextmenu={(e) => openContextMenu(e, backup)}
+            class="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors duration-100 {menuBackup?.id === backup.id
+              ? 'border-accent/50 bg-surface-muted/40'
+              : 'border-line bg-page hover:border-line-strong'}"
+          >
             <div class="min-w-0 space-y-1">
               <div class="flex flex-wrap items-center gap-2">
                 <p class="truncate text-sm font-semibold text-ink">
                   {backup.fileName || backup.uid}
                 </p>
-                <span
-                  class="rounded-full px-2 py-0.5 text-[11px] font-medium {backup.status === 'success'
-                    ? 'bg-accent-soft text-accent'
-                    : backup.status === 'failed'
-                      ? 'bg-danger-soft text-danger'
-                      : 'bg-surface-muted text-muted'}"
-                >
-                  {backup.status}
-                </span>
+                <StatusBadge
+                  label={backup.status}
+                  variant={backup.status === "success"
+                    ? "success"
+                    : backup.status === "failed"
+                      ? "danger"
+                      : "neutral"}
+                />
                 {#if backup.type}
-                  <span class="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
-                    {backup.type}
-                  </span>
+                  <StatusBadge
+                    label={backup.type}
+                    variant={backup.type === "database" || backup.type === "full" ? "info" : "warning"}
+                  />
                 {/if}
               </div>
               <p class="text-xs text-muted">
@@ -113,12 +177,19 @@
 
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              disabled={deletingId === backup.id}
-              onclick={() => handleDelete(backup.id)}
+              variant="ghost"
+              size="icon"
+              aria-label="Backup actions"
+              aria-haspopup="menu"
+              aria-expanded={menuBackup?.id === backup.id}
+              onclick={(e) => openButtonMenu(e, backup)}
+              class="shrink-0 text-muted hover:text-ink"
             >
-              {deletingId === backup.id ? "Deleting…" : "Delete"}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                <circle cx="12" cy="5" r="1"/>
+                <circle cx="12" cy="12" r="1"/>
+                <circle cx="12" cy="19" r="1"/>
+              </svg>
             </Button>
           </div>
         {/each}
@@ -126,3 +197,22 @@
     {/if}
   </div>
 </div>
+
+<ActionMenu
+  open={Boolean(menuBackup)}
+  style={menuStyle}
+  showEdit={false}
+  deleting={menuBackup !== null && deletingId === menuBackup.id}
+  ondelete={handleMenuDelete}
+  onclose={closeMenu}
+/>
+
+<DeleteConfirmDialog
+  open={Boolean(confirmDeleteBackup)}
+  titleId="backup-delete-dialog-title"
+  title="Delete Backup"
+  itemName={confirmDeleteBackup?.fileName || confirmDeleteBackup?.uid || ""}
+  deleting={deletingId !== null}
+  onclose={closeConfirmDelete}
+  onconfirm={confirmDelete}
+/>

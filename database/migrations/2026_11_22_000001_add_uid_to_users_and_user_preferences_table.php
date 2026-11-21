@@ -13,7 +13,11 @@ return new class extends Migration
         foreach (['users', 'user_preferences'] as $tableName) {
             if (! Schema::hasColumn($tableName, 'uid')) {
                 Schema::table($tableName, function (Blueprint $table) {
-                    $table->uuid('uid')->nullable()->unique()->after('id');
+                    $table->uuid('uid')->nullable()->after('id');
+                });
+            } elseif (Schema::hasIndex($tableName, "{$tableName}_uid_unique")) {
+                Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+                    $table->dropUnique("{$tableName}_uid_unique");
                 });
             }
 
@@ -27,6 +31,12 @@ return new class extends Migration
             Schema::table($tableName, function (Blueprint $table) {
                 $table->uuid('uid')->nullable(false)->change();
             });
+
+            if (! Schema::hasIndex($tableName, "{$tableName}_uid_unique")) {
+                Schema::table($tableName, function (Blueprint $table) {
+                    $table->unique('uid');
+                });
+            }
         }
     }
 
@@ -34,8 +44,10 @@ return new class extends Migration
     {
         foreach (['user_preferences', 'users'] as $tableName) {
             if (Schema::hasColumn($tableName, 'uid')) {
-                Schema::table($tableName, function (Blueprint $table) {
-                    $table->dropUnique(['uid']);
+                Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+                    if (Schema::hasIndex($tableName, "{$tableName}_uid_unique")) {
+                        $table->dropUnique("{$tableName}_uid_unique");
+                    }
                     $table->dropColumn('uid');
                 });
             }

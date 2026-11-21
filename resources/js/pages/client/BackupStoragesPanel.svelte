@@ -9,7 +9,11 @@
   import { Label } from "@/components/ui/label/index.js";
   import { Select } from "@/components/ui/select/index.js";
   import type { BackupStorageItem, BackupStorageProviderItem } from "@/lib/backup-types.js";
+  import { getButtonMenuStyle, getContextMenuStyle } from "@/lib/context-menu.js";
   import { restoreDialogAction, setActionParams } from "@/lib/url-state.js";
+  import ActionMenu from "./ActionMenu.svelte";
+  import DeleteConfirmDialog from "./DeleteConfirmDialog.svelte";
+  import StatusBadge from "./StatusBadge.svelte";
 
   interface KeyRow {
     key: string;
@@ -28,6 +32,9 @@
   let editingId = $state<number | null>(null);
   let deletingId = $state<number | null>(null);
   let keyRows = $state<KeyRow[]>([]);
+  let menuStorage = $state<BackupStorageItem | null>(null);
+  let menuStyle = $state("");
+  let confirmDeleteStorage = $state<BackupStorageItem | null>(null);
 
   const form = useForm({
     name: "",
@@ -68,6 +75,9 @@
     restoreDialogAction(storages, {
       onCreate: openCreate,
       onEdit: openEdit,
+      onDelete: (storage) => {
+        confirmDeleteStorage = storage;
+      },
     });
   });
 
@@ -144,14 +154,62 @@
       },
       onFinish: () => {
         deletingId = null;
+        confirmDeleteStorage = null;
+        setActionParams(null);
       },
     });
+  }
+
+  function openContextMenu(event: MouseEvent, storage: BackupStorageItem) {
+    event.preventDefault();
+    menuStyle = getContextMenuStyle(event);
+    menuStorage = storage;
+  }
+
+  function openButtonMenu(event: MouseEvent, storage: BackupStorageItem) {
+    event.stopPropagation();
+    if (menuStorage?.id === storage.id) {
+      closeMenu();
+      return;
+    }
+    menuStyle = getButtonMenuStyle(event.currentTarget as HTMLElement);
+    menuStorage = storage;
+  }
+
+  function closeMenu() {
+    menuStorage = null;
+  }
+
+  function handleMenuEdit() {
+    if (!menuStorage) return;
+    const storage = menuStorage;
+    closeMenu();
+    openEdit(storage);
+  }
+
+  function handleMenuDelete() {
+    if (!menuStorage) return;
+    const storage = menuStorage;
+    closeMenu();
+    confirmDeleteStorage = storage;
+    setActionParams("delete", storage.uid);
+  }
+
+  function closeConfirmDelete() {
+    if (deletingId !== null) return;
+    confirmDeleteStorage = null;
+    setActionParams(null);
+  }
+
+  function confirmDelete() {
+    if (!confirmDeleteStorage) return;
+    handleDelete(confirmDeleteStorage.id);
   }
 </script>
 
 <svelte:window
   onkeydown={(e) => {
-    if (e.key === "Escape" && isDialogOpen) {
+    if (e.key === "Escape" && isDialogOpen && !menuStorage && !confirmDeleteStorage) {
       closeDialog();
     }
   }}
@@ -201,39 +259,44 @@
         </div>
       </div>
     {:else}
-      <div class="space-y-3">
+      <div role="list" class="space-y-3">
         {#each storages as storage (storage.id)}
-          <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-page p-4">
+          <div
+            role="listitem"
+            oncontextmenu={(e) => openContextMenu(e, storage)}
+            class="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors duration-100 {menuStorage?.id === storage.id
+              ? 'border-accent/50 bg-surface-muted/40'
+              : 'border-line bg-page hover:border-line-strong'}"
+          >
             <div class="min-w-0 space-y-1">
-              <div class="flex items-center gap-2">
-                <p class="text-sm font-semibold text-ink">{storage.name}</p>
-                <span
-                  class="rounded-full px-2 py-0.5 text-[11px] font-medium {storage.active
-                    ? 'bg-accent-soft text-accent'
-                    : 'bg-surface-muted text-muted'}"
-                >
-                  {storage.active ? "Active" : "Inactive"}
-                </span>
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="truncate text-sm font-semibold text-ink">{storage.name}</p>
+                <StatusBadge
+                  label={storage.active ? "Active" : "Inactive"}
+                  variant={storage.active ? "success" : "neutral"}
+                />
               </div>
               <p class="text-xs text-muted">
                 Slug: <span class="font-mono">{storage.slug}</span> &middot; Provider: {storage.providerName ?? "Local"} &middot; Keys: {Object.keys(storage.keys ?? {}).length}
               </p>
             </div>
 
-            <div class="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onclick={() => openEdit(storage)}>
-                Edit
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={deletingId === storage.id}
-                onclick={() => handleDelete(storage.id)}
-              >
-                {deletingId === storage.id ? "Deleting…" : "Delete"}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Storage actions"
+              aria-haspopup="menu"
+              aria-expanded={menuStorage?.id === storage.id}
+              onclick={(e) => openButtonMenu(e, storage)}
+              class="shrink-0 text-muted hover:text-ink"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                <circle cx="12" cy="5" r="1"/>
+                <circle cx="12" cy="12" r="1"/>
+                <circle cx="12" cy="19" r="1"/>
+              </svg>
+            </Button>
           </div>
         {/each}
       </div>
@@ -391,3 +454,22 @@
     </div>
   </div>
 {/if}
+
+<ActionMenu
+  open={Boolean(menuStorage)}
+  style={menuStyle}
+  deleting={menuStorage !== null && deletingId === menuStorage.id}
+  onedit={handleMenuEdit}
+  ondelete={handleMenuDelete}
+  onclose={closeMenu}
+/>
+
+<DeleteConfirmDialog
+  open={Boolean(confirmDeleteStorage)}
+  titleId="storage-delete-dialog-title"
+  title="Delete Backup Storage"
+  itemName={confirmDeleteStorage?.name ?? ""}
+  deleting={deletingId !== null}
+  onclose={closeConfirmDelete}
+  onconfirm={confirmDelete}
+/>

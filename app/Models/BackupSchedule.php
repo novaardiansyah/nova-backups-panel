@@ -5,12 +5,12 @@ namespace App\Models;
 use App\Enums\BackupScheduleIntervalUnit;
 use App\Enums\BackupType;
 use App\Models\Concerns\HasUid;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 
 #[Fillable([
     'user_id',
@@ -96,7 +96,7 @@ class BackupSchedule extends Model
         return $this->hasMany(Backup::class, 'schedule_id');
     }
 
-    public function calculateNextBackupAt(?Carbon $baseDate = null): Carbon
+    public function calculateNextBackupAt(?CarbonInterface $baseDate = null): CarbonInterface
     {
         $base = $baseDate ? $baseDate->copy() : now();
         $value = (int) ($this->interval_value ?: 1);

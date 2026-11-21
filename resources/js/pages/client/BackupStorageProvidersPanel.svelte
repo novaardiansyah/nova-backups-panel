@@ -1,13 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { router, useForm } from "@inertiajs/svelte";
-  import { fly, slide } from "svelte/transition";
+  import { slide } from "svelte/transition";
   import { Button } from "@/components/ui/button/index.js";
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card/index.js";
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
   import type { BackupStorageProviderItem } from "@/lib/backup-types.js";
+  import { getButtonMenuStyle, getContextMenuStyle } from "@/lib/context-menu.js";
   import { restoreDialogAction, setActionParams } from "@/lib/url-state.js";
+  import ActionMenu from "./ActionMenu.svelte";
+  import DeleteConfirmDialog from "./DeleteConfirmDialog.svelte";
 
   interface KeyRow {
     key: string;
@@ -27,7 +30,6 @@
   let keyRows = $state<KeyRow[]>([]);
   let menuProvider = $state<BackupStorageProviderItem | null>(null);
   let menuStyle = $state("");
-  let menuEl = $state<HTMLDivElement | null>(null);
   let confirmDeleteProvider = $state<BackupStorageProviderItem | null>(null);
 
   const form = useForm({
@@ -149,11 +151,7 @@
   }
   function openContextMenu(event: MouseEvent, provider: BackupStorageProviderItem) {
     event.preventDefault();
-    const menuWidth = 160;
-    const menuHeight = 88;
-    const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8);
-    const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8);
-    menuStyle = `left: ${Math.max(8, x)}px; top: ${Math.max(8, y)}px;`;
+    menuStyle = getContextMenuStyle(event);
     menuProvider = provider;
   }
 
@@ -163,14 +161,7 @@
       closeMenu();
       return;
     }
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const menuWidth = 160;
-    const menuHeight = 88;
-    const x = Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8);
-    const openUpward = window.innerHeight - rect.bottom < menuHeight + 12 && rect.top > menuHeight + 12;
-    const y = openUpward ? rect.top - menuHeight - 4 : rect.bottom + 4;
-    menuStyle = `left: ${Math.max(8, x)}px; top: ${Math.max(8, y)}px;`;
+    menuStyle = getButtonMenuStyle(event.currentTarget as HTMLElement);
     menuProvider = provider;
   }
 
@@ -203,37 +194,13 @@
     if (!confirmDeleteProvider) return;
     handleDelete(confirmDeleteProvider.id);
   }
-
-  function handleWindowClick(event: MouseEvent) {
-    if (!menuProvider) return;
-    const target = event.target as Node | null;
-    if (menuEl?.contains(target)) return;
-    closeMenu();
-  }
 </script>
 
 <svelte:window
-  onclick={handleWindowClick}
   onkeydown={(e) => {
-    if (e.key === "Escape") {
-      if (menuProvider) {
-        closeMenu();
-        return;
-      }
-      if (confirmDeleteProvider) {
-        closeConfirmDelete();
-        return;
-      }
-      if (isDialogOpen) {
-        closeDialog();
-      }
+    if (e.key === "Escape" && isDialogOpen && !menuProvider && !confirmDeleteProvider) {
+      closeDialog();
     }
-  }}
-  onresize={() => {
-    if (menuProvider) closeMenu();
-  }}
-  onscroll={() => {
-    if (menuProvider) closeMenu();
   }}
 />
 
@@ -455,90 +422,21 @@
   </div>
 {/if}
 
-{#if menuProvider}
-  <div
-    bind:this={menuEl}
-    role="menu"
-    style={menuStyle}
-    transition:fly={{ y: -2, duration: 100 }}
-    class="fixed z-[60] w-40 rounded-md border border-line bg-page-elevated p-1 shadow-lg"
-  >
-    <button
-      type="button"
-      role="menuitem"
-      onclick={handleMenuEdit}
-      class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm text-ink hover:bg-surface-muted"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 text-muted">
-        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-        <path d="m15 5 4 4"/>
-      </svg>
-      <span>Edit</span>
-    </button>
+<ActionMenu
+  open={Boolean(menuProvider)}
+  style={menuStyle}
+  deleting={menuProvider !== null && deletingId === menuProvider.id}
+  onedit={handleMenuEdit}
+  ondelete={handleMenuDelete}
+  onclose={closeMenu}
+/>
 
-    <button
-      type="button"
-      role="menuitem"
-      disabled={deletingId === menuProvider.id}
-      onclick={handleMenuDelete}
-      class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm text-danger hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5">
-        <path d="M3 6h18"/>
-        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-      </svg>
-      <span>{deletingId === menuProvider.id ? "Deleting…" : "Delete"}</span>
-    </button>
-  </div>
-{/if}
-
-{#if confirmDeleteProvider}
-  <div
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="provider-delete-dialog-title"
-    tabindex="-1"
-    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
-  >
-    <button
-      type="button"
-      class="fixed inset-0 bg-black/50 backdrop-blur-xs"
-      onclick={closeConfirmDelete}
-      aria-label="Close modal"
-      tabindex="-1"
-    ></button>
-
-    <div class="relative z-10 my-8 w-full max-w-md">
-      <Card class="shadow-lg">
-        <CardHeader>
-          <CardTitle id="provider-delete-dialog-title">Delete Storage Provider</CardTitle>
-          <CardDescription>
-            Are you sure you want to delete <span class="font-medium text-ink">{confirmDeleteProvider.name}</span>? This action cannot be undone.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <div class="flex items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onclick={closeConfirmDelete}
-              disabled={deletingId !== null}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onclick={confirmDelete}
-              disabled={deletingId !== null}
-            >
-              {deletingId === confirmDeleteProvider.id ? "Deleting…" : "Delete"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  </div>
-{/if}
+<DeleteConfirmDialog
+  open={Boolean(confirmDeleteProvider)}
+  titleId="provider-delete-dialog-title"
+  title="Delete Storage Provider"
+  itemName={confirmDeleteProvider?.name ?? ""}
+  deleting={deletingId !== null}
+  onclose={closeConfirmDelete}
+  onconfirm={confirmDelete}
+/>

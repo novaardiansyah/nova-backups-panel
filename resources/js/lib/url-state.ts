@@ -37,6 +37,7 @@ export function restoreDialogAction<T extends { uid: string }>(
   items: T[],
   handlers: {
     onCreate?: () => void;
+    onDetail?: (item: T) => void;
     onEdit?: (item: T) => void;
     onDelete?: (item: T) => void;
   },
@@ -47,6 +48,14 @@ export function restoreDialogAction<T extends { uid: string }>(
   if (action === "create" && handlers.onCreate) {
     handlers.onCreate();
     return;
+  }
+
+  if (action === "detail" && id !== null && handlers.onDetail) {
+    const target = items.find((item) => item.uid === id);
+    if (target) {
+      handlers.onDetail(target);
+      return;
+    }
   }
 
   if (action === "edit" && id !== null && handlers.onEdit) {

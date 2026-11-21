@@ -9,7 +9,11 @@
   import { Label } from "@/components/ui/label/index.js";
   import { Select } from "@/components/ui/select/index.js";
   import type { BackupScheduleItem, BackupStorageItem } from "@/lib/backup-types.js";
+  import { getButtonMenuStyle, getContextMenuStyle } from "@/lib/context-menu.js";
   import { restoreDialogAction, setActionParams } from "@/lib/url-state.js";
+  import ActionMenu from "./ActionMenu.svelte";
+  import DeleteConfirmDialog from "./DeleteConfirmDialog.svelte";
+  import StatusBadge from "./StatusBadge.svelte";
 
   interface Props {
     schedules: BackupScheduleItem[];
@@ -22,6 +26,11 @@
   let isDialogOpen = $state(false);
   let editingId = $state<number | null>(null);
   let deletingId = $state<number | null>(null);
+  let menuSchedule = $state<BackupScheduleItem | null>(null);
+  let menuStyle = $state("");
+  let detailSchedule = $state<BackupScheduleItem | null>(null);
+  let copiedUid = $state(false);
+  let confirmDeleteSchedule = $state<BackupScheduleItem | null>(null);
 
   const form = useForm({
     name: "",
@@ -47,9 +56,58 @@
   onMount(() => {
     restoreDialogAction(schedules, {
       onCreate: openCreate,
+      onDetail: openDetail,
       onEdit: openEdit,
+      onDelete: (schedule) => {
+        confirmDeleteSchedule = schedule;
+      },
     });
   });
+
+  function openDetail(schedule: BackupScheduleItem) {
+    copiedUid = false;
+    detailSchedule = schedule;
+    setActionParams("detail", schedule.uid);
+  }
+
+  function closeDetail() {
+    copiedUid = false;
+    detailSchedule = null;
+    setActionParams(null);
+  }
+
+  async function copyUid(uid: string) {
+    try {
+      await navigator.clipboard.writeText(uid);
+      copiedUid = true;
+      setTimeout(() => {
+        copiedUid = false;
+      }, 1500);
+    } catch {
+      copiedUid = false;
+    }
+  }
+
+  function formatBytes(bytes: number): string {
+    if (!bytes || bytes <= 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / Math.pow(1024, index);
+    return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+  }
+
+  function formatDateTime(value: string | null): string {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   function openCreate() {
     editingId = null;
@@ -145,15 +203,76 @@
       },
       onFinish: () => {
         deletingId = null;
+        confirmDeleteSchedule = null;
+        setActionParams(null);
       },
     });
+  }
+
+  function openContextMenu(event: MouseEvent, schedule: BackupScheduleItem) {
+    event.preventDefault();
+    menuStyle = getContextMenuStyle(event, 160, 124);
+    menuSchedule = schedule;
+  }
+
+  function openButtonMenu(event: MouseEvent, schedule: BackupScheduleItem) {
+    event.stopPropagation();
+    if (menuSchedule?.id === schedule.id) {
+      closeMenu();
+      return;
+    }
+    menuStyle = getButtonMenuStyle(event.currentTarget as HTMLElement, 160, 124);
+    menuSchedule = schedule;
+  }
+
+  function closeMenu() {
+    menuSchedule = null;
+  }
+
+  function handleMenuDetail() {
+    if (!menuSchedule) return;
+    const schedule = menuSchedule;
+    closeMenu();
+    openDetail(schedule);
+  }
+
+  function handleMenuEdit() {
+    if (!menuSchedule) return;
+    const schedule = menuSchedule;
+    closeMenu();
+    openEdit(schedule);
+  }
+
+  function handleMenuDelete() {
+    if (!menuSchedule) return;
+    const schedule = menuSchedule;
+    closeMenu();
+    confirmDeleteSchedule = schedule;
+    setActionParams("delete", schedule.uid);
+  }
+
+  function closeConfirmDelete() {
+    if (deletingId !== null) return;
+    confirmDeleteSchedule = null;
+    setActionParams(null);
+  }
+
+  function confirmDelete() {
+    if (!confirmDeleteSchedule) return;
+    handleDelete(confirmDeleteSchedule.id);
   }
 </script>
 
 <svelte:window
   onkeydown={(e) => {
-    if (e.key === "Escape" && isDialogOpen) {
-      closeDialog();
+    if (e.key === "Escape" && !menuSchedule) {
+      if (detailSchedule) {
+        closeDetail();
+        return;
+      }
+      if (isDialogOpen && !confirmDeleteSchedule) {
+        closeDialog();
+      }
     }
   }}
 />
@@ -202,22 +321,26 @@
         </div>
       </div>
     {:else}
-      <div class="space-y-3">
+      <div role="list" class="space-y-3">
         {#each schedules as schedule (schedule.id)}
-          <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-page p-4">
+          <div
+            role="listitem"
+            oncontextmenu={(e) => openContextMenu(e, schedule)}
+            class="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors duration-100 {menuSchedule?.id === schedule.id
+              ? 'border-accent/50 bg-surface-muted/40'
+              : 'border-line bg-page hover:border-line-strong'}"
+          >
             <div class="min-w-0 space-y-1">
               <div class="flex flex-wrap items-center gap-2">
-                <p class="text-sm font-semibold text-ink">{schedule.name}</p>
-                <span
-                  class="rounded-full px-2 py-0.5 text-[11px] font-medium {schedule.isEnabled
-                    ? 'bg-accent-soft text-accent'
-                    : 'bg-surface-muted text-muted'}"
-                >
-                  {schedule.isEnabled ? "Enabled" : "Disabled"}
-                </span>
-                <span class="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
-                  {schedule.type}
-                </span>
+                <p class="truncate text-sm font-semibold text-ink">{schedule.name}</p>
+                <StatusBadge
+                  label={schedule.isEnabled ? "Enabled" : "Disabled"}
+                  variant={schedule.isEnabled ? "success" : "neutral"}
+                />
+                <StatusBadge
+                  label={schedule.type}
+                  variant={schedule.type === "database" ? "info" : "warning"}
+                />
               </div>
               <p class="text-xs text-muted">
                 Every {schedule.intervalValue} {schedule.intervalUnit} &middot;
@@ -228,20 +351,22 @@
               </p>
             </div>
 
-            <div class="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onclick={() => openEdit(schedule)}>
-                Edit
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={deletingId === schedule.id}
-                onclick={() => handleDelete(schedule.id)}
-              >
-                {deletingId === schedule.id ? "Deleting…" : "Delete"}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Schedule actions"
+              aria-haspopup="menu"
+              aria-expanded={menuSchedule?.id === schedule.id}
+              onclick={(e) => openButtonMenu(e, schedule)}
+              class="shrink-0 text-muted hover:text-ink"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                <circle cx="12" cy="5" r="1"/>
+                <circle cx="12" cy="12" r="1"/>
+                <circle cx="12" cy="19" r="1"/>
+              </svg>
+            </Button>
           </div>
         {/each}
       </div>
@@ -562,3 +687,212 @@
     </div>
   </div>
 {/if}
+
+{#if detailSchedule}
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="schedule-detail-dialog-title"
+    tabindex="-1"
+    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+  >
+    <button
+      type="button"
+      class="fixed inset-0 bg-black/50 backdrop-blur-xs"
+      onclick={closeDetail}
+      aria-label="Close modal"
+      tabindex="-1"
+    ></button>
+
+    <div class="relative z-10 my-8 w-full max-w-5xl">
+      <Card class="shadow-lg max-h-[90vh] flex flex-col">
+        <CardHeader class="shrink-0">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <CardTitle id="schedule-detail-dialog-title" class="truncate">
+                  {detailSchedule.name}
+                </CardTitle>
+                <StatusBadge
+                  label={detailSchedule.isEnabled ? "Enabled" : "Disabled"}
+                  variant={detailSchedule.isEnabled ? "success" : "neutral"}
+                />
+                <StatusBadge
+                  label={detailSchedule.type}
+                  variant={detailSchedule.type === "database" ? "info" : "warning"}
+                />
+              </div>
+              <div class="flex items-center gap-1.5">
+                <CardDescription class="font-mono text-xs">
+                  UID: {detailSchedule.uid}
+                </CardDescription>
+                <button
+                  type="button"
+                  onclick={() => detailSchedule && copyUid(detailSchedule.uid)}
+                  class="inline-flex cursor-pointer items-center justify-center rounded p-1 text-muted transition-colors hover:bg-surface-muted hover:text-ink"
+                  aria-label="Copy UID"
+                  title={copiedUid ? "Copied" : "Copy UID"}
+                >
+                  {#if copiedUid}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 text-accent">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  {:else}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                    </svg>
+                  {/if}
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onclick={closeDetail}
+              class="cursor-pointer rounded-md p-1 text-muted hover:text-ink"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </CardHeader>
+
+        <CardContent class="overflow-y-auto space-y-5">
+          <div class="grid gap-4 rounded-lg border border-line bg-page p-4 sm:grid-cols-2">
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Interval</p>
+              <p class="mt-1 text-sm text-ink">Every {detailSchedule.intervalValue} {detailSchedule.intervalUnit}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Retention</p>
+              <p class="mt-1 text-sm text-ink">{detailSchedule.maxCountBackup} backups (Current: {detailSchedule.countBackup})</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Filename Pattern</p>
+              <p class="mt-1 font-mono text-xs text-ink break-all">{detailSchedule.filenamePattern || "—"}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Total Backup Size</p>
+              <p class="mt-1 text-sm text-ink">{formatBytes(detailSchedule.sumFileSize)}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Next Backup</p>
+              <p class="mt-1 text-sm text-ink">{formatDateTime(detailSchedule.nextBackupAt)}</p>
+            </div>
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Last Backup</p>
+              <p class="mt-1 text-sm text-ink">{formatDateTime(detailSchedule.lastBackupAt)}</p>
+            </div>
+          </div>
+
+          <div class="space-y-3 rounded-lg border border-line bg-page p-4">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Source Configuration</h3>
+            {#if detailSchedule.type === "database"}
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Database Driver</p>
+                  <p class="mt-1 text-sm text-ink">{detailSchedule.drivers ?? "—"}</p>
+                </div>
+                <div>
+                  <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Database Name</p>
+                  <p class="mt-1 font-mono text-xs text-ink break-all">{detailSchedule.databaseName ?? "—"}</p>
+                </div>
+              </div>
+            {:else}
+              <div class="space-y-3">
+                <div>
+                  <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Source Path</p>
+                  <p class="mt-1 font-mono text-xs text-ink break-all">{detailSchedule.sourcePath ?? "—"}</p>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Include</p>
+                    <p class="mt-1 font-mono text-xs text-ink break-all">
+                      {detailSchedule.include.length > 0 ? detailSchedule.include.join(", ") : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Exclude</p>
+                    <p class="mt-1 font-mono text-xs text-ink break-all">
+                      {detailSchedule.exclude.length > 0 ? detailSchedule.exclude.join(", ") : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <div class="space-y-3 rounded-lg border border-line bg-page p-4">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-muted">Storage & Destinations</h3>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Backup Storage</p>
+                <p class="mt-1 text-sm text-ink">{detailSchedule.storageName ?? "—"}</p>
+              </div>
+              <div>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Target Server</p>
+                <p class="mt-1 text-sm text-ink">{detailSchedule.serverName ?? "—"}</p>
+              </div>
+              <div>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Keep Local Backup</p>
+                <p class="mt-1 text-sm text-ink">{detailSchedule.keepLocalBackup ? "Yes" : "No"}</p>
+              </div>
+              <div>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Local Destination Path</p>
+                <p class="mt-1 font-mono text-xs text-ink break-all">{detailSchedule.localDestinationPath ?? "—"}</p>
+              </div>
+              <div>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Sync to Cloud</p>
+                <p class="mt-1 text-sm text-ink">{detailSchedule.isSyncCloud ? "Yes" : "No"}</p>
+              </div>
+              <div>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-muted">Cloud Destination Path</p>
+                <p class="mt-1 font-mono text-xs text-ink break-all">{detailSchedule.r2DestinationPath ?? "—"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 border-t border-line pt-4">
+            <Button type="button" variant="outline" onclick={closeDetail}>
+              Close
+            </Button>
+            <Button
+              type="button"
+              onclick={() => {
+                const target = detailSchedule;
+                closeDetail();
+                if (target) openEdit(target);
+              }}
+            >
+              Edit
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+{/if}
+
+<ActionMenu
+  open={Boolean(menuSchedule)}
+  style={menuStyle}
+  showDetail={true}
+  deleting={menuSchedule !== null && deletingId === menuSchedule.id}
+  ondetail={handleMenuDetail}
+  onedit={handleMenuEdit}
+  ondelete={handleMenuDelete}
+  onclose={closeMenu}
+/>
+
+<DeleteConfirmDialog
+  open={Boolean(confirmDeleteSchedule)}
+  titleId="schedule-delete-dialog-title"
+  title="Delete Backup Schedule"
+  itemName={confirmDeleteSchedule?.name ?? ""}
+  deleting={deletingId !== null}
+  onclose={closeConfirmDelete}
+  onconfirm={confirmDelete}
+/>
