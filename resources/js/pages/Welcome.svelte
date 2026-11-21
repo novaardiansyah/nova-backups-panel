@@ -217,7 +217,7 @@
         class="animate-rise-delayed group relative block w-full cursor-zoom-in overflow-hidden rounded-xl border border-line-strong bg-surface p-1.5 text-left shadow-2xl shadow-black/20 focus:outline-none focus:ring-2 focus:ring-accent dark:shadow-black/60"
         onclick={() =>
           openZoom(
-            "/demo/client-area-backup-schedules.png",
+            "/demo/client-area-backup-schedules.webp",
             "Nova Backups Panel Backup Schedules workspace",
             "Nova Backups Panel - Backup Schedules",
           )}
@@ -240,7 +240,7 @@
             </span>
           </div>
           <img
-            src="/demo/client-area-backup-schedules.png"
+            src="/demo/client-area-backup-schedules.webp"
             alt="Nova Backups Panel Backup Schedules workspace"
             class="block h-auto w-full"
             decoding="async"
@@ -481,11 +481,11 @@
           <button
             type="button"
             class="group relative mt-5 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-line bg-surface-muted p-0 text-left focus:outline-none focus:ring-2 focus:ring-accent"
-            onclick={() => openZoom("/demo/client-area-backups.png", "Backup execution history", content.capabilities.logsTitle)}
+            onclick={() => openZoom("/demo/client-area-backups.webp", "Backup execution history", content.capabilities.logsTitle)}
             aria-label={`Zoom ${content.capabilities.logsTitle} preview`}
           >
             <img
-              src="/demo/client-area-backups.png"
+              src="/demo/client-area-backups.webp"
               alt="Backup execution history"
               loading="lazy"
               decoding="async"
@@ -502,11 +502,11 @@
           <button
             type="button"
             class="group relative mt-5 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-line bg-surface-muted p-0 text-left focus:outline-none focus:ring-2 focus:ring-accent"
-            onclick={() => openZoom("/demo/client-area-preference.png", "Preferences panel", content.capabilities.prefsTitle)}
+            onclick={() => openZoom("/demo/client-area-preference.webp", "Preferences panel", content.capabilities.prefsTitle)}
             aria-label={`Zoom ${content.capabilities.prefsTitle} preview`}
           >
             <img
-              src="/demo/client-area-preference.png"
+              src="/demo/client-area-preference.webp"
               alt="Preferences panel"
               loading="lazy"
               decoding="async"

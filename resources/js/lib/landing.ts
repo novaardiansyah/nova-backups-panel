@@ -140,7 +140,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Backup Schedules",
           label: "Automated file & database schedules",
-          image: "/demo/client-area-backup-schedules.png",
+          image: "/demo/client-area-backup-schedules.webp",
           alt: "Nova Backups Panel Backup Schedules view",
           description:
             "Configure recurring file or database backup jobs with custom filename patterns, include/exclude filters, retention limits, and cloud sync destinations.",
@@ -153,7 +153,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Execution History",
           label: "Recorded runs, sizes & statuses",
-          image: "/demo/client-area-backups.png",
+          image: "/demo/client-area-backups.webp",
           alt: "Nova Backups Panel Backups history view",
           description:
             "Track every backup run executed by your agent with clear status indicators, archive file sizes, timestamps, and contextual cleanup actions.",
@@ -166,7 +166,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Storage Destinations",
           label: "Local & cloud target registry",
-          image: "/demo/client-area-backup-storage.png",
+          image: "/demo/client-area-backup-storage.webp",
           alt: "Nova Backups Panel Backup Storage view",
           description:
             "Organize concrete storage destinations linked to your providers, toggle active availability, and manage target credentials from one place.",
@@ -179,7 +179,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Storage Providers",
           label: "S3 Storage, Google Drive & custom templates",
-          image: "/demo/client-area-backup-storage-providers.png",
+          image: "/demo/client-area-backup-storage-providers.webp",
           alt: "Nova Backups Panel Storage Providers view",
           description:
             "Define reusable storage provider templates for Amazon S3, S3-compatible buckets, or Google Drive with structured default configuration keys.",
@@ -192,7 +192,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Preferences & Localization",
           label: "Light, dark & bilingual workspace",
-          image: "/demo/client-area-preference.png",
+          image: "/demo/client-area-preference.webp",
           alt: "Nova Backups Panel Preferences view",
           description:
             "Tailor the control plane to your workflow with persisted Light, Dark, and System themes alongside English and Indonesian language support.",
@@ -368,7 +368,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Jadwal Backup",
           label: "Jadwal otomatis file & database",
-          image: "/demo/client-area-backup-schedules.png",
+          image: "/demo/client-area-backup-schedules.webp",
           alt: "Tampilan Jadwal Backup Nova Backups Panel",
           description:
             "Atur backup file atau database berkala dengan pola nama file kustom, filter include/exclude, batas retensi, dan sinkronisasi cloud.",
@@ -381,7 +381,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Riwayat Eksekusi",
           label: "Catatan eksekusi, ukuran & status",
-          image: "/demo/client-area-backups.png",
+          image: "/demo/client-area-backups.webp",
           alt: "Tampilan Riwayat Backup Nova Backups Panel",
           description:
             "Pantau setiap eksekusi backup dari agent Anda dengan indikator status yang jelas, ukuran arsip, waktu eksekusi, dan aksi pembersihan.",
@@ -394,7 +394,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Destinasi Penyimpanan",
           label: "Registri target lokal & cloud",
-          image: "/demo/client-area-backup-storage.png",
+          image: "/demo/client-area-backup-storage.webp",
           alt: "Tampilan Backup Storage Nova Backups Panel",
           description:
             "Kelola destinasi penyimpanan yang terhubung ke provider Anda, atur status aktif/nonaktif, dan simpan kredensial target di satu tempat.",
@@ -407,7 +407,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Storage Provider",
           label: "S3 Storage, Google Drive & template kustom",
-          image: "/demo/client-area-backup-storage-providers.png",
+          image: "/demo/client-area-backup-storage-providers.webp",
           alt: "Tampilan Storage Providers Nova Backups Panel",
           description:
             "Buat template provider penyimpanan yang dapat digunakan ulang untuk Amazon S3, storage kompatibel S3, atau Google Drive dengan key konfigurasi terstruktur.",
@@ -420,7 +420,7 @@ export const landingContent: Record<LocalePreference, LandingContent> = {
         {
           title: "Preferensi & Bahasa",
           label: "Workspace terang, gelap & dwibahasa",
-          image: "/demo/client-area-preference.png",
+          image: "/demo/client-area-preference.webp",
           alt: "Tampilan Preferensi Nova Backups Panel",
           description:
             "Sesuaikan tampilan panel dengan tema Terang, Gelap, dan Sistem yang tersimpan, serta dukungan bahasa Inggris dan Indonesia.",

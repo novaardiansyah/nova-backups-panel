@@ -32,7 +32,7 @@ export const privacyDocument: LegalDocument = {
     "This Privacy Policy explains what information Nova Backups collects and processes when you use our web panel and backup management services, how it is protected, and the choices you have.",
   effectiveLabel: "Effective date",
   updatedLabel: "Last updated",
-  effectiveDate: "21 November 2026",
+  effectiveDate: "11 November 2026",
   updatedDate: "21 November 2026",
   tocLabel: "On this page",
   notice:
@@ -115,7 +115,7 @@ export const termsDocument: LegalDocument = {
     "These Terms of Service govern your access to and use of the Nova Backups control panel and associated backup management tools. By creating an account or signing in, you agree to these terms.",
   effectiveLabel: "Effective date",
   updatedLabel: "Last updated",
-  effectiveDate: "21 November 2026",
+  effectiveDate: "11 November 2026",
   updatedDate: "21 November 2026",
   tocLabel: "On this page",
   notice:
