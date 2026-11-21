@@ -45,3 +45,7 @@ yarn-error.log
 
 /obsidian
 /references
+
+Makefile
+Makefile.production
+Makefile.local
