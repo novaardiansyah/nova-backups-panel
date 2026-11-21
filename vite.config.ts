@@ -4,6 +4,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 const isSvelteCheck = process.argv.some((argument) =>
@@ -32,6 +33,13 @@ export default defineConfig({
             formVariants: true,
         }),
     ]),
+    resolve: {
+        alias: {
+            '$lib/utils.js': fileURLToPath(new URL('./resources/js/lib/utils.ts', import.meta.url)),
+            '$lib/utils': fileURLToPath(new URL('./resources/js/lib/utils.ts', import.meta.url)),
+            '$lib': fileURLToPath(new URL('./resources/js', import.meta.url)),
+        },
+    },
     server: {
         watch: {
             ignored: [
@@ -65,7 +73,6 @@ export default defineConfig({
         tabWidth: 4,
         singleQuote: true,
         semi: true,
-        singleAttributePerLine: false,
         htmlWhitespaceSensitivity: 'css',
         ignorePatterns: [
             '.github/**',

@@ -34,8 +34,17 @@
         "moduleResolution": "bundler" /* Specify how TypeScript looks up a file from a given module specifier. */,
         // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
         "paths": {
-            /* Specify a set of entries that re-map imports to additional lookup locations. */ "@/*": [
+            "@/*": [
                 "./resources/js/*"
+            ],
+            "$lib/*": [
+                "./resources/js/*"
+            ],
+            "$lib/utils.js": [
+                "./resources/js/lib/utils.ts"
+            ],
+            "$lib/utils": [
+                "./resources/js/lib/utils.ts"
             ]
         },
         // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */

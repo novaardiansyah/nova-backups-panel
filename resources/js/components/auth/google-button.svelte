@@ -1,6 +1,6 @@
 <script lang="ts">
-  import GoogleIcon from "$lib/components/brand/google-icon.svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
+  import GoogleIcon from "@/components/brand/google-icon.svelte";
+  import { Button } from "@/components/ui/button/index.js";
 
   interface Props {
     label?: string;
