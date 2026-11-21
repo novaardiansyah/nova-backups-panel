@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BackupStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,7 @@ class BackupStorageController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
-        $userId = $request->user()->id;
+        $userId = (int) $request->user()->id;
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -20,18 +21,33 @@ class BackupStorageController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('backup_storages', 'slug')->where('user_id', $userId),
+                Rule::unique('backup_storages', 'slug')
+                    ->where('user_id', $userId)
+                    ->whereNull('deleted_at'),
             ],
             'provider_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('backup_storage_providers', 'id')->where('user_id', $userId),
+                Rule::exists('backup_storage_providers', 'id')
+                    ->where('user_id', $userId)
+                    ->whereNull('deleted_at'),
             ],
             'keys' => ['nullable', 'array'],
             'active' => ['boolean'],
         ]);
 
         $slug = ! empty($validated['slug']) ? Str::slug($validated['slug']) : Str::slug($validated['name']);
+
+        Validator::make(
+            ['slug' => $slug],
+            [
+                'slug' => [
+                    Rule::unique('backup_storages', 'slug')
+                        ->where('user_id', $userId)
+                        ->whereNull('deleted_at'),
+                ],
+            ],
+        )->validate();
 
         BackupStorage::create([
             'user_id' => $userId,
@@ -58,12 +74,15 @@ class BackupStorageController extends Controller
                 'max:255',
                 Rule::unique('backup_storages', 'slug')
                     ->where('user_id', $userId)
+                    ->whereNull('deleted_at')
                     ->ignore($storage->id),
             ],
             'provider_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('backup_storage_providers', 'id')->where('user_id', $userId),
+                Rule::exists('backup_storage_providers', 'id')
+                    ->where('user_id', $userId)
+                    ->whereNull('deleted_at'),
             ],
             'keys' => ['nullable', 'array'],
             'active' => ['boolean'],
@@ -85,6 +104,10 @@ class BackupStorageController extends Controller
     public function destroy(Request $request, BackupStorage $storage): RedirectResponse
     {
         abort_unless((int) $storage->user_id === (int) $request->user()->id, 403);
+
+        $storage->update([
+            'slug' => $storage->slug.'-deleted-'.$storage->id,
+        ]);
 
         $storage->delete();
 

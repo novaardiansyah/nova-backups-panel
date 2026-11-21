@@ -1,6 +1,6 @@
 <script lang="ts">
   import { router, useForm } from "@inertiajs/svelte";
-  import { slide } from "svelte/transition";
+  import { fly, slide } from "svelte/transition";
   import { Button } from "@/components/ui/button/index.js";
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card/index.js";
   import { Input } from "@/components/ui/input/index.js";
@@ -23,6 +23,10 @@
   let editingId = $state<number | null>(null);
   let deletingId = $state<number | null>(null);
   let keyRows = $state<KeyRow[]>([]);
+  let menuProvider = $state<BackupStorageProviderItem | null>(null);
+  let menuStyle = $state("");
+  let menuEl = $state<HTMLDivElement | null>(null);
+  let confirmDeleteProvider = $state<BackupStorageProviderItem | null>(null);
 
   const form = useForm({
     name: "",
@@ -123,16 +127,95 @@
       },
       onFinish: () => {
         deletingId = null;
+        confirmDeleteProvider = null;
       },
     });
+  }
+  function openContextMenu(event: MouseEvent, provider: BackupStorageProviderItem) {
+    event.preventDefault();
+    const menuWidth = 160;
+    const menuHeight = 88;
+    const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8);
+    const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8);
+    menuStyle = `left: ${Math.max(8, x)}px; top: ${Math.max(8, y)}px;`;
+    menuProvider = provider;
+  }
+
+  function openButtonMenu(event: MouseEvent, provider: BackupStorageProviderItem) {
+    event.stopPropagation();
+    if (menuProvider?.id === provider.id) {
+      closeMenu();
+      return;
+    }
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const menuWidth = 160;
+    const menuHeight = 88;
+    const x = Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8);
+    const openUpward = window.innerHeight - rect.bottom < menuHeight + 12 && rect.top > menuHeight + 12;
+    const y = openUpward ? rect.top - menuHeight - 4 : rect.bottom + 4;
+    menuStyle = `left: ${Math.max(8, x)}px; top: ${Math.max(8, y)}px;`;
+    menuProvider = provider;
+  }
+
+  function closeMenu() {
+    menuProvider = null;
+  }
+
+  function handleMenuEdit() {
+    if (!menuProvider) return;
+    const provider = menuProvider;
+    closeMenu();
+    openEdit(provider);
+  }
+
+  function handleMenuDelete() {
+    if (!menuProvider) return;
+    const provider = menuProvider;
+    closeMenu();
+    confirmDeleteProvider = provider;
+  }
+
+  function closeConfirmDelete() {
+    if (deletingId !== null) return;
+    confirmDeleteProvider = null;
+  }
+
+  function confirmDelete() {
+    if (!confirmDeleteProvider) return;
+    handleDelete(confirmDeleteProvider.id);
+  }
+
+  function handleWindowClick(event: MouseEvent) {
+    if (!menuProvider) return;
+    const target = event.target as Node | null;
+    if (menuEl?.contains(target)) return;
+    closeMenu();
   }
 </script>
 
 <svelte:window
+  onclick={handleWindowClick}
   onkeydown={(e) => {
-    if (e.key === "Escape" && isDialogOpen) {
-      closeDialog();
+    if (e.key === "Escape") {
+      if (menuProvider) {
+        closeMenu();
+        return;
+      }
+      if (confirmDeleteProvider) {
+        closeConfirmDelete();
+        return;
+      }
+      if (isDialogOpen) {
+        closeDialog();
+      }
     }
+  }}
+  onresize={() => {
+    if (menuProvider) closeMenu();
+  }}
+  onscroll={() => {
+    if (menuProvider) closeMenu();
   }}
 />
 
@@ -179,30 +262,38 @@
         </div>
       </div>
     {:else}
-      <div class="space-y-3">
+      <div role="list" class="space-y-3">
         {#each providers as provider (provider.id)}
-          <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-page p-4">
+          <div
+            role="listitem"
+            oncontextmenu={(e) => openContextMenu(e, provider)}
+            class="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors duration-100 {menuProvider?.id === provider.id
+              ? 'border-accent/50 bg-surface-muted/40'
+              : 'border-line bg-page hover:border-line-strong'}"
+          >
             <div class="min-w-0 space-y-1">
-              <p class="text-sm font-semibold text-ink">{provider.name}</p>
+              <p class="truncate text-sm font-semibold text-ink">{provider.name}</p>
               <p class="text-xs text-muted">
                 Slug: <span class="font-mono">{provider.slug}</span> &middot; Storages: {provider.storagesCount} &middot; Keys: {Object.keys(provider.keys ?? {}).length}
               </p>
             </div>
 
-            <div class="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onclick={() => openEdit(provider)}>
-                Edit
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={deletingId === provider.id}
-                onclick={() => handleDelete(provider.id)}
-              >
-                {deletingId === provider.id ? "Deleting…" : "Delete"}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Provider actions"
+              aria-haspopup="menu"
+              aria-expanded={menuProvider?.id === provider.id}
+              onclick={(e) => openButtonMenu(e, provider)}
+              class="shrink-0 text-muted hover:text-ink"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                <circle cx="12" cy="5" r="1"/>
+                <circle cx="12" cy="12" r="1"/>
+                <circle cx="12" cy="19" r="1"/>
+              </svg>
+            </Button>
           </div>
         {/each}
       </div>
@@ -305,8 +396,21 @@
                     <div class="grid grid-cols-[1fr_1fr_auto] gap-2" transition:slide={{ duration: 150 }}>
                       <Input type="text" placeholder="Key" bind:value={row.key} />
                       <Input type="text" placeholder="Value" bind:value={row.value} />
-                      <Button type="button" variant="ghost" size="sm" onclick={() => removeKeyRow(index)}>
-                        Remove
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onclick={() => removeKeyRow(index)}
+                        aria-label="Remove key"
+                        class="text-muted hover:bg-danger-soft hover:text-danger"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                          <path d="M3 6h18"/>
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                          <line x1="10" x2="10" y1="11" y2="17"/>
+                          <line x1="14" x2="14" y1="11" y2="17"/>
+                        </svg>
                       </Button>
                     </div>
                   {/each}
@@ -327,6 +431,94 @@
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+{/if}
+
+{#if menuProvider}
+  <div
+    bind:this={menuEl}
+    role="menu"
+    style={menuStyle}
+    transition:fly={{ y: -2, duration: 100 }}
+    class="fixed z-[60] w-40 rounded-md border border-line bg-page-elevated p-1 shadow-lg"
+  >
+    <button
+      type="button"
+      role="menuitem"
+      onclick={handleMenuEdit}
+      class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm text-ink hover:bg-surface-muted"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 text-muted">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+        <path d="m15 5 4 4"/>
+      </svg>
+      <span>Edit</span>
+    </button>
+
+    <button
+      type="button"
+      role="menuitem"
+      disabled={deletingId === menuProvider.id}
+      onclick={handleMenuDelete}
+      class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm text-danger hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5">
+        <path d="M3 6h18"/>
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+      </svg>
+      <span>{deletingId === menuProvider.id ? "Deleting…" : "Delete"}</span>
+    </button>
+  </div>
+{/if}
+
+{#if confirmDeleteProvider}
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="provider-delete-dialog-title"
+    tabindex="-1"
+    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+  >
+    <button
+      type="button"
+      class="fixed inset-0 bg-black/50 backdrop-blur-xs"
+      onclick={closeConfirmDelete}
+      aria-label="Close modal"
+      tabindex="-1"
+    ></button>
+
+    <div class="relative z-10 my-8 w-full max-w-md">
+      <Card class="shadow-lg">
+        <CardHeader>
+          <CardTitle id="provider-delete-dialog-title">Delete Storage Provider</CardTitle>
+          <CardDescription>
+            Are you sure you want to delete <span class="font-medium text-ink">{confirmDeleteProvider.name}</span>? This action cannot be undone.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <div class="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onclick={closeConfirmDelete}
+              disabled={deletingId !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onclick={confirmDelete}
+              disabled={deletingId !== null}
+            >
+              {deletingId === confirmDeleteProvider.id ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
