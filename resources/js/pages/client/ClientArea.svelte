@@ -1,6 +1,7 @@
 <script lang="ts">
   import { router } from "@inertiajs/svelte";
   import ThemeToggle from "@/components/auth/theme-toggle.svelte";
+  import { Toast } from "@/components/ui/toast/index.js";
   import { getClientTranslations } from "@/lib/i18n.js";
   import { applyTheme } from "@/lib/theme.js";
   import OnboardingDialog from "./OnboardingDialog.svelte";
@@ -47,10 +48,24 @@
   let active = $state<ClientSection>("profile");
   let signingOut = $state(false);
   let onboardingOpen = $state(false);
+  let toastOpen = $state(false);
+  let toastMessage = $state("");
 
   $effect(() => {
     applyTheme(user.theme);
   });
+
+  $effect(() => {
+    if (status) {
+      toastMessage = status;
+      toastOpen = true;
+    }
+  });
+
+  function showStatusToast(message: string) {
+    toastMessage = message;
+    toastOpen = true;
+  }
 
   $effect(() => {
     if (showOnboarding || onboardingCompleted) {
@@ -169,9 +184,9 @@
 
       <div class="min-w-0">
         {#if active === "profile"}
-          <ProfilePanel {user} {status} />
+          <ProfilePanel {user} onstatus={showStatusToast} />
         {:else}
-          <PreferencesPanel {user} {status} />
+          <PreferencesPanel {user} onstatus={showStatusToast} />
         {/if}
       </div>
     </div>
@@ -183,4 +198,11 @@
   initialName={user.name}
   completed={onboardingCompleted}
   onclose={() => (onboardingOpen = false)}
+/>
+
+<Toast
+  open={toastOpen}
+  title={user.locale === "id" ? "Notifikasi" : "Notification"}
+  description={toastMessage}
+  onclose={() => (toastOpen = false)}
 />

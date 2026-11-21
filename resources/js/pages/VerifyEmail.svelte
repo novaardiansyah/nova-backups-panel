@@ -4,6 +4,7 @@
   import { Button } from "@/components/ui/button/index.js";
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
+  import { Toast } from "@/components/ui/toast/index.js";
 
   interface Props {
     email: string;
@@ -15,6 +16,15 @@
 
   let resending = $state(false);
   let remainingSeconds = $state(0);
+  let toastOpen = $state(false);
+  let toastMessage = $state("");
+
+  $effect(() => {
+    if (status) {
+      toastMessage = status;
+      toastOpen = true;
+    }
+  });
 
   $effect(() => {
     remainingSeconds = Math.max(0, cooldownRemaining);
@@ -52,6 +62,13 @@
     form.clearErrors("otp");
     router.post("/verify-email/resend", {}, {
       preserveScroll: true,
+      onSuccess: (page) => {
+        const nextStatus = (page.props as { status?: string | null }).status;
+        if (nextStatus) {
+          toastMessage = nextStatus;
+          toastOpen = true;
+        }
+      },
       onError: (errors) => {
         if (errors.otp) {
           form.setError("otp", errors.otp);
@@ -104,12 +121,6 @@
       {/if}
     </div>
 
-    {#if status}
-      <p class="rounded-md bg-accent-soft px-3 py-2 text-sm text-accent">
-        {status}
-      </p>
-    {/if}
-
     <Button type="submit" class="w-full" disabled={form.processing}>
       {form.processing ? "Verifying…" : "Verify code"}
     </Button>
@@ -126,3 +137,10 @@
     </p>
   </form>
 </AuthShell>
+
+<Toast
+  open={toastOpen}
+  title="Notification"
+  description={toastMessage}
+  onclose={() => (toastOpen = false)}
+/>

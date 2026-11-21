@@ -4,12 +4,23 @@
   import { Button } from "@/components/ui/button/index.js";
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
+  import { Toast } from "@/components/ui/toast/index.js";
 
   interface Props {
     status?: string | null;
   }
 
   let { status = null }: Props = $props();
+
+  let toastOpen = $state(false);
+  let toastMessage = $state("");
+
+  $effect(() => {
+    if (status) {
+      toastMessage = status;
+      toastOpen = true;
+    }
+  });
 
   const form = useForm({
     email: "",
@@ -41,12 +52,6 @@
       {/if}
     </div>
 
-    {#if status}
-      <p class="rounded-md bg-accent-soft px-3 py-2 text-sm text-accent">
-        {status}
-      </p>
-    {/if}
-
     <Button type="submit" class="w-full" disabled={form.processing}>
       {form.processing ? "Sending…" : "Send reset code"}
     </Button>
@@ -57,3 +62,10 @@
     </p>
   </form>
 </AuthShell>
+
+<Toast
+  open={toastOpen}
+  title="Notification"
+  description={toastMessage}
+  onclose={() => (toastOpen = false)}
+/>

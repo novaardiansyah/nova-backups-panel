@@ -7,10 +7,10 @@
 
   interface Props {
     user: ClientUser;
-    status?: string | null;
+    onstatus?: (message: string) => void;
   }
 
-  let { user, status = null }: Props = $props();
+  let { user, onstatus }: Props = $props();
 
   const copy = $derived(getClientTranslations(user.locale));
 
@@ -36,8 +36,12 @@
     event.preventDefault();
     form.put("/client/preferences", {
       preserveScroll: true,
-      onSuccess: () => {
+      onSuccess: (page) => {
         applyTheme(form.theme);
+        const nextStatus = (page.props as { status?: string | null }).status;
+        if (nextStatus) {
+          onstatus?.(nextStatus);
+        }
       },
     });
   }
@@ -67,12 +71,6 @@
     novalidate
   >
     <div class="space-y-6">
-      {#if status}
-        <p class="rounded-md bg-accent-soft px-3 py-2 text-sm text-accent">
-          {status}
-        </p>
-      {/if}
-
       <div>
         <h3 class="text-sm font-semibold text-ink">{copy.preferences.themeLabel}</h3>
         <p class="mt-1 text-xs leading-5 text-faint">{copy.preferences.themeDescription}</p>

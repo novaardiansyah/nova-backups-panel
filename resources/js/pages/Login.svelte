@@ -29,12 +29,21 @@
   let sendingOtp = $state(false);
   let remainingSeconds = $state(0);
   let showGoogleToast = $state(false);
+  let statusToastOpen = $state(false);
+  let statusToastMessage = $state("");
 
   const form = useForm({
     email: "",
     password: "",
     otp: "",
     remember: true,
+  });
+
+  $effect(() => {
+    if (status) {
+      statusToastMessage = status;
+      statusToastOpen = true;
+    }
   });
 
   $effect(() => {
@@ -95,6 +104,13 @@
       { email: form.email },
       {
         preserveScroll: true,
+        onSuccess: (page) => {
+          const nextStatus = (page.props as { status?: string | null }).status;
+          if (nextStatus) {
+            statusToastMessage = nextStatus;
+            statusToastOpen = true;
+          }
+        },
         onFinish: () => {
           sendingOtp = false;
         },
@@ -214,12 +230,6 @@
       </label>
     {/if}
 
-    {#if status}
-      <p class="rounded-md bg-accent-soft px-3 py-2 text-sm text-accent">
-        {status}
-      </p>
-    {/if}
-
     <Button type="submit" class="w-full" disabled={form.processing || sendingOtp}>
       {#if step === "email"}
         {form.processing ? "Checking…" : "Continue"}
@@ -276,4 +286,11 @@
   title="Feature in development"
   description="Google sign-in is still under development and not available yet. Please sign in using your email address."
   onclose={() => (showGoogleToast = false)}
+/>
+
+<Toast
+  open={statusToastOpen}
+  title="Notification"
+  description={statusToastMessage}
+  onclose={() => (statusToastOpen = false)}
 />

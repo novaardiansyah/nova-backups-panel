@@ -20,10 +20,10 @@
 
   interface Props {
     user: ClientUser;
-    status?: string | null;
+    onstatus?: (message: string) => void;
   }
 
-  let { user, status = null }: Props = $props();
+  let { user, onstatus }: Props = $props();
 
   const copy = $derived(getClientTranslations(user.locale));
 
@@ -53,8 +53,12 @@
     event.preventDefault();
     form.put("/client/profile", {
       preserveScroll: true,
-      onSuccess: () => {
+      onSuccess: (page) => {
         form.reset("current_password", "password", "password_confirmation");
+        const nextStatus = (page.props as { status?: string | null }).status;
+        if (nextStatus) {
+          onstatus?.(nextStatus);
+        }
       },
       onError: () => {
         form.reset("current_password", "password", "password_confirmation");
@@ -105,12 +109,6 @@
     novalidate
   >
     <div class="space-y-4">
-      {#if status}
-        <p class="rounded-md bg-accent-soft px-3 py-2 text-sm text-accent">
-          {status}
-        </p>
-      {/if}
-
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="grid gap-2">
           <Label for="profile-name">{copy.profile.fullName}</Label>
