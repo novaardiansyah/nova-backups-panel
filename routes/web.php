@@ -6,9 +6,33 @@ use App\Http\Controllers\BackupScheduleController;
 use App\Http\Controllers\BackupStorageController;
 use App\Http\Controllers\BackupStorageProviderController;
 use App\Http\Controllers\ClientAreaController;
+use App\Models\Faq;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
+use Inertia\Inertia;
 
-Route::get('/', [AuthController::class, 'showLogin'])->name('home');
+Route::get('/', fn () => Inertia::render('Welcome', [
+    'isAuthenticated' => auth()->check(),
+    'userLocale' => auth()->user()?->preferredLocale() ?? 'en',
+    'faqs' => Schema::hasTable('faqs')
+        ? Faq::query()
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Faq $faq) => [
+                'uid' => $faq->uid,
+                'question' => [
+                    'en' => $faq->question_en,
+                    'id' => $faq->question_id,
+                ],
+                'answer' => [
+                    'en' => $faq->answer_en,
+                    'id' => $faq->answer_id,
+                ],
+            ])
+        : [],
+]))->name('home');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login/identify', [AuthController::class, 'identifyLogin'])->middleware('guest')->name('login.identify');
 Route::post('/login/otp/send', [AuthController::class, 'sendLoginOtp'])->middleware('guest')->name('login.otp.send');

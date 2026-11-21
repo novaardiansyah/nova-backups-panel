@@ -140,7 +140,7 @@
   });
 
   function handleBackToHome() {
-    homeToastOpen = true;
+    router.visit("/");
   }
 
   function handleLogout() {
@@ -180,7 +180,7 @@
         </div>
       </div>
 
-      <ThemeToggle />
+      <ThemeToggle locale={user.locale} persist={true} onstatus={showStatusToast} />
     </header>
 
     <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">

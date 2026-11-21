@@ -1,407 +1,897 @@
 <script lang="ts">
-    import AppHead from '@/components/AppHead.svelte';
+  import { onMount } from "svelte";
+  import { Link } from "@inertiajs/svelte";
+  import ThemeToggle from "@/components/auth/theme-toggle.svelte";
+  import { landingContent, type LandingFaqItem } from "@/lib/landing.js";
+  import { applyTheme, type LocalePreference, type ThemePreference } from "@/lib/theme.js";
+
+  interface Props {
+    isAuthenticated?: boolean;
+    userLocale?: LocalePreference;
+    faqs?: LandingFaqItem[];
+  }
+
+  let { isAuthenticated = false, userLocale = "en", faqs = [] }: Props = $props();
+
+  let lang = $state<LocalePreference>("en");
+  const content = $derived(landingContent[lang]);
+  const showcaseItems = $derived(content.showcase.items);
+
+  let activeShowcase = $state(0);
+  const activeItem = $derived(showcaseItems[activeShowcase]);
+
+  let zoomedImage = $state<{ src: string; alt: string; title: string } | null>(null);
+  let isFullResolution = $state(false);
+
+  onMount(() => {
+    try {
+      const savedTheme = localStorage.getItem("nova-theme") as ThemePreference | null;
+      if (savedTheme === "light" || savedTheme === "dark" || savedTheme === "system") {
+        applyTheme(savedTheme);
+      }
+      const savedLocale = localStorage.getItem("nova-locale") as LocalePreference | null;
+      if (savedLocale === "en" || savedLocale === "id") {
+        lang = savedLocale;
+      } else if (userLocale === "en" || userLocale === "id") {
+        lang = userLocale;
+      }
+    } catch {
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target === null) return;
+      document.querySelectorAll("header details[open]").forEach((element) => {
+        if (!element.contains(target)) {
+          (element as HTMLDetailsElement).open = false;
+        }
+      });
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  });
+
+  function chooseLang(nextLang: LocalePreference, event: MouseEvent) {
+    lang = nextLang;
+    try {
+      localStorage.setItem("nova-locale", nextLang);
+    } catch {
+    }
+    const details = (event.currentTarget as HTMLElement).closest("details") as HTMLDetailsElement | null;
+    if (details) {
+      details.open = false;
+    }
+  }
+
+  function openZoom(src: string, alt: string, title: string) {
+    zoomedImage = { src, alt, title };
+    isFullResolution = false;
+  }
+
+  function closeZoom() {
+    zoomedImage = null;
+    isFullResolution = false;
+  }
+
+  function toggleResolution() {
+    isFullResolution = !isFullResolution;
+  }
 </script>
 
-<AppHead title="Welcome">
-    <link rel="preconnect" href="https://rsms.me/" />
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-</AppHead>
-<div
-    class="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]"
->
-    <div
-        class="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0"
-    >
-        <main
-            class="flex w-full max-w-[335px] flex-col-reverse overflow-hidden rounded-lg lg:max-w-4xl lg:flex-row"
-        >
-            <div
-                class="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-5 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
+<svelte:head>
+  <title>Nova Backups Panel - {content.hero.titleLead} {content.hero.titleAccent}</title>
+  <meta name="description" content={content.hero.description} />
+</svelte:head>
+
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === "Escape" && zoomedImage) {
+      closeZoom();
+    }
+  }}
+/>
+
+<div class="relative min-h-screen overflow-x-clip bg-page text-ink">
+  <div class="pointer-events-none absolute inset-x-0 top-0 h-[960px] overflow-hidden" aria-hidden="true">
+    <div class="hero-halo absolute inset-0"></div>
+    <div class="grid-lines mask-fade-b absolute inset-0 opacity-40"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 border-b border-line bg-header backdrop-blur-md">
+    <div class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-5 sm:px-6 lg:px-8">
+      <Link href="/" class="flex items-center gap-2.5 text-sm font-semibold tracking-tight text-ink">
+        <img
+          src="/logo.png"
+          alt="Nova Backups"
+          width="28"
+          height="28"
+          class="h-7 w-7 rounded-[7px] object-contain"
+        />
+        <span>Nova Backups</span>
+      </Link>
+
+      <nav class="hidden items-center gap-6 text-sm text-muted md:flex" aria-label="Primary">
+        <a href="#product" class="transition-colors hover:text-ink">{content.nav.showcase}</a>
+        <a href="#features" class="transition-colors hover:text-ink">{content.nav.workflow}</a>
+        <a href="#capabilities" class="transition-colors hover:text-ink">{content.nav.capabilities}</a>
+        <a href="#architecture" class="transition-colors hover:text-ink">{content.nav.architecture}</a>
+        <a href="#faq" class="transition-colors hover:text-ink">{content.nav.faq}</a>
+      </nav>
+
+      <div class="flex items-center gap-1 sm:gap-2">
+        <ThemeToggle />
+
+        <details class="group relative">
+          <summary
+            class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-ink [&::-webkit-details-marker]:hidden"
+            aria-label={content.nav.language}
+            title={content.nav.language}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+              <path d="M2 12h20"/>
+            </svg>
+          </summary>
+          <div class="absolute right-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-lg border border-line bg-page-elevated p-1 shadow-2xl shadow-black/20">
+            <button
+              type="button"
+              class="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-xs transition-colors hover:bg-surface-muted {lang === 'en'
+                ? 'font-semibold text-ink'
+                : 'text-muted'}"
+              onclick={(event) => chooseLang("en", event)}
             >
-                <h1 class="mb-1 font-medium">Let's get started</h1>
-                <p class="mb-2 text-[#706f6c] dark:text-[#A1A09A]">
-                    Laravel has an incredibly rich ecosystem. <br />We suggest
-                    starting with the following.
-                </p>
-                <ul class="mb-4 flex flex-col lg:mb-6">
-                    <li
-                        class="relative flex items-center gap-4 py-2 before:absolute before:top-1/2 before:bottom-0 before:left-[0.4rem] before:border-l before:border-[#e3e3e0] dark:before:border-[#3E3E3A]"
-                    >
-                        <span class="relative bg-white py-1 dark:bg-[#161615]">
-                            <span
-                                class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#e3e3e0] bg-[#FDFDFC] shadow-[0px_0px_1px_0px_rgba(0,0,0,0.03),0px_1px_2px_0px_rgba(0,0,0,0.06)] dark:border-[#3E3E3A] dark:bg-[#161615]"
-                            >
-                                <span
-                                    class="h-1.5 w-1.5 rounded-full bg-[#dbdbd7] dark:bg-[#3E3E3A]"
-                                ></span>
-                            </span>
-                        </span>
-                        <span>
-                            Read the
-                            <a
-                                href="https://laravel.com/docs"
-                                target="_blank"
-                                class="ml-1 inline-flex items-center space-x-1 font-medium text-[#f53003] underline underline-offset-4 dark:text-[#FF4433]"
-                            >
-                                <span>Documentation</span>
-                                <svg
-                                    width="10"
-                                    height="11"
-                                    viewBox="0 0 10 11"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-2.5 w-2.5"
-                                >
-                                    <path
-                                        d="M7.70833 6.95834V2.79167H3.54167M2.5 8L7.5 3.00001"
-                                        stroke="currentColor"
-                                        stroke-linecap="square"
-                                    />
-                                </svg>
-                            </a>
-                        </span>
-                    </li>
-                    <li
-                        class="relative flex items-center gap-4 py-2 before:absolute before:top-0 before:bottom-1/2 before:left-[0.4rem] before:border-l before:border-[#e3e3e0] dark:before:border-[#3E3E3A]"
-                    >
-                        <span class="relative bg-white py-1 dark:bg-[#161615]">
-                            <span
-                                class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#e3e3e0] bg-[#FDFDFC] shadow-[0px_0px_1px_0px_rgba(0,0,0,0.03),0px_1px_2px_0px_rgba(0,0,0,0.06)] dark:border-[#3E3E3A] dark:bg-[#161615]"
-                            >
-                                <span
-                                    class="h-1.5 w-1.5 rounded-full bg-[#dbdbd7] dark:bg-[#3E3E3A]"
-                                ></span>
-                            </span>
-                        </span>
-                        <span>
-                            Watch video tutorials at
-                            <a
-                                href="https://laracasts.com"
-                                target="_blank"
-                                class="ml-1 inline-flex items-center space-x-1 font-medium text-[#f53003] underline underline-offset-4 dark:text-[#FF4433]"
-                            >
-                                <span>Laracasts</span>
-                                <svg
-                                    width="10"
-                                    height="11"
-                                    viewBox="0 0 10 11"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-2.5 w-2.5"
-                                >
-                                    <path
-                                        d="M7.70833 6.95834V2.79167H3.54167M2.5 8L7.5 3.00001"
-                                        stroke="currentColor"
-                                        stroke-linecap="square"
-                                    />
-                                </svg>
-                            </a>
-                        </span>
-                    </li>
-                </ul>
-                <ul class="flex gap-3 text-sm leading-normal">
-                    <li>
-                        <a
-                            href="https://cloud.laravel.com"
-                            target="_blank"
-                            class="inline-block rounded-sm border border-black bg-[#1b1b18] px-5 py-1.5 text-sm leading-normal text-white hover:border-black hover:bg-black dark:border-[#eeeeec] dark:bg-[#eeeeec] dark:text-[#1C1C1A] dark:hover:border-white dark:hover:bg-white"
-                        >
-                            Deploy now
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            <div
-                class="bg-[#fff2f2] dark:bg-[#1D0002] relative lg:-ml-px -mb-px lg:mb-0 rounded-t-lg lg:rounded-t-none lg:rounded-r-lg aspect-[335/364] lg:aspect-auto w-full lg:w-[438px] shrink-0 overflow-hidden"
+              English
+              {#if lang === "en"}
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 text-accent">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              {/if}
+            </button>
+            <button
+              type="button"
+              class="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-xs transition-colors hover:bg-surface-muted {lang === 'id'
+                ? 'font-semibold text-ink'
+                : 'text-muted'}"
+              onclick={(event) => chooseLang("id", event)}
             >
-                <!-- Laravel Logo -->
-                <svg
-                    class="w-full text-[#F53003] dark:text-[#F61500] transition-all translate-y-0 opacity-100 max-w-none duration-750 starting:opacity-0 motion-safe:starting:translate-y-6"
-                    viewBox="0 0 438 104"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path
-                        d="M17.2036 -3H0V102.197H49.5189V86.7187H17.2036V-3Z"
-                        fill="currentColor"
-                    />
-                    <path
-                        d="M110.256 41.6337C108.061 38.1275 104.945 35.3731 100.905 33.3681C96.8667 31.3647 92.8016 30.3618 88.7131 30.3618C83.4247 30.3618 78.5885 31.3389 74.201 33.2923C69.8111 35.2456 66.0474 37.928 62.9059 41.3333C59.7643 44.7401 57.3198 48.6726 55.5754 53.1293C53.8287 57.589 52.9572 62.274 52.9572 67.1813C52.9572 72.1925 53.8287 76.8995 55.5754 81.3069C57.3191 85.7173 59.7636 89.6241 62.9059 93.0293C66.0474 96.4361 69.8119 99.1155 74.201 101.069C78.5885 103.022 83.4247 103.999 88.7131 103.999C92.8016 103.999 96.8667 102.997 100.905 100.994C104.945 98.9911 108.061 96.2359 110.256 92.7282V102.195H126.563V32.1642H110.256V41.6337ZM108.76 75.7472C107.762 78.4531 106.366 80.8078 104.572 82.8112C102.776 84.8161 100.606 86.4183 98.0637 87.6206C95.5202 88.823 92.7004 89.4238 89.6103 89.4238C86.5178 89.4238 83.7252 88.823 81.2324 87.6206C78.7388 86.4183 76.5949 84.8161 74.7998 82.8112C73.004 80.8078 71.6319 78.4531 70.6856 75.7472C69.7356 73.0421 69.2644 70.1868 69.2644 67.1821C69.2644 64.1758 69.7356 61.3205 70.6856 58.6154C71.6319 55.9102 73.004 53.5571 74.7998 51.5522C76.5949 49.5495 78.738 47.9451 81.2324 46.7427C83.7252 45.5404 86.5178 44.9396 89.6103 44.9396C92.7012 44.9396 95.5202 45.5404 98.0637 46.7427C100.606 47.9451 102.776 49.5487 104.572 51.5522C106.367 53.5571 107.762 55.9102 108.76 58.6154C109.756 61.3205 110.256 64.1758 110.256 67.1821C110.256 70.1868 109.756 73.0421 108.76 75.7472Z"
-                        fill="currentColor"
-                    />
-                    <path
-                        d="M242.805 41.6337C240.611 38.1275 237.494 35.3731 233.455 33.3681C229.416 31.3647 225.351 30.3618 221.262 30.3618C215.974 30.3618 211.138 31.3389 206.75 33.2923C202.36 35.2456 198.597 37.928 195.455 41.3333C192.314 44.7401 189.869 48.6726 188.125 53.1293C186.378 57.589 185.507 62.274 185.507 67.1813C185.507 72.1925 186.378 76.8995 188.125 81.3069C189.868 85.7173 192.313 89.6241 195.455 93.0293C198.597 96.4361 202.361 99.1155 206.75 101.069C211.138 103.022 215.974 103.999 221.262 103.999C225.351 103.999 229.416 102.997 233.455 100.994C237.494 98.9911 240.611 96.2359 242.805 92.7282V102.195H259.112V32.1642H242.805V41.6337ZM241.31 75.7472C240.312 78.4531 238.916 80.8078 237.122 82.8112C235.326 84.8161 233.156 86.4183 230.614 87.6206C228.07 88.823 225.251 89.4238 222.16 89.4238C219.068 89.4238 216.275 88.823 213.782 87.6206C211.289 86.4183 209.145 84.8161 207.35 82.8112C205.554 80.8078 204.182 78.4531 203.236 75.7472C202.286 73.0421 201.814 70.1868 201.814 67.1821C201.814 64.1758 202.286 61.3205 203.236 58.6154C204.182 55.9102 205.554 53.5571 207.35 51.5522C209.145 49.5495 211.288 47.9451 213.782 46.7427C216.275 45.5404 219.068 44.9396 222.16 44.9396C225.251 44.9396 228.07 45.5404 230.614 46.7427C233.156 47.9451 235.326 49.5487 237.122 51.5522C238.917 53.5571 240.312 55.9102 241.31 58.6154C242.306 61.3205 242.806 64.1758 242.806 67.1821C242.805 70.1868 242.305 73.0421 241.31 75.7472Z"
-                        fill="currentColor"
-                    />
-                    <path
-                        d="M438 -3H421.694V102.197H438V-3Z"
-                        fill="currentColor"
-                    />
-                    <path
-                        d="M139.43 102.197H155.735V48.2834H183.712V32.1665H139.43V102.197Z"
-                        fill="currentColor"
-                    />
-                    <path
-                        d="M324.49 32.1665L303.995 85.794L283.498 32.1665H266.983L293.748 102.197H314.242L341.006 32.1665H324.49Z"
-                        fill="currentColor"
-                    />
-                    <path
-                        d="M376.571 30.3656C356.603 30.3656 340.797 46.8497 340.797 67.1828C340.797 89.6597 356.094 104 378.661 104C391.29 104 399.354 99.1488 409.206 88.5848L398.189 80.0226C398.183 80.031 389.874 90.9895 377.468 90.9895C363.048 90.9895 356.977 79.3111 356.977 73.269H411.075C413.917 50.1328 398.775 30.3656 376.571 30.3656ZM357.02 61.0967C357.145 59.7487 359.023 43.3761 376.442 43.3761C393.861 43.3761 395.978 59.7464 396.099 61.0967H357.02Z"
-                        fill="currentColor"
-                    />
+              Indonesia
+              {#if lang === "id"}
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 text-accent">
+                  <polyline points="20 6 9 17 4 12"/>
                 </svg>
+              {/if}
+            </button>
+          </div>
+        </details>
 
-                <!-- 13 -->
-                <svg
-                    class="w-[438px] max-w-none relative -mt-[6.6rem] -ml-8 lg:ml-0 [--stroke-color:#1B1B18] dark:[--stroke-color:#FF750F]"
-                    viewBox="0 0 440 392"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <g
-                        class="mix-blend-darken dark:mix-blend-normal transition-all delay-300 opacity-100 duration-750 starting:opacity-0 text-[#1B1B18] dark:text-black"
-                    >
-                        <mask
-                            id="path-1-mask"
-                            maskUnits="userSpaceOnUse"
-                            x="-0.328613"
-                            y="103"
-                            width="338"
-                            height="299"
-                            fill="black"
-                        >
-                            <rect
-                                fill="white"
-                                x="-0.328613"
-                                y="103"
-                                width="338"
-                                height="299"
-                            />
-                            <path
-                                d="M234.936 400.8C204.136 400.8 178.936 392.4 159.336 375.6C140.136 358.8 130.536 337 130.536 310.2H200.736C200.736 318.2 203.736 324.8 209.736 330C215.736 335.2 223.736 337.8 233.736 337.8C243.336 337.8 251.136 335 257.136 329.4C263.536 323.8 266.736 316.6 266.736 307.8C266.736 299.8 263.936 293.2 258.336 288C252.736 282.8 245.536 280.2 236.736 280.2H199.536V218.4H236.736C243.536 218.4 249.336 216 254.136 211.2C258.936 206.4 261.336 200.4 261.336 193.2C261.336 184.8 258.736 178.2 253.536 173.4C248.336 168.6 241.736 166.2 233.736 166.2C226.536 166.2 220.336 168.4 215.136 172.8C210.336 177.2 207.936 182.8 207.936 189.6H141.336C141.336 164.8 150.136 144.6 167.736 129C185.336 113 207.936 105 235.536 105C263.136 105 285.536 112.2 302.736 126.6C320.336 141 329.136 160 329.136 183.6C329.136 200.8 324.536 214.8 315.336 225.6C306.136 236 294.336 243.2 279.936 247.2C297.136 252 310.736 260.2 320.736 271.8C331.136 283.4 336.336 298 336.336 315.6C336.336 340.4 326.936 360.8 308.136 376.8C289.336 392.8 264.936 400.8 234.936 400.8Z"
-                            />
-                            <path
-                                d="M26.8714 167.6H1.67139V105.2H94.6714V400.2H26.8714V167.6Z"
-                            />
-                        </mask>
-                        <path
-                            d="M234.936 400.8C204.136 400.8 178.936 392.4 159.336 375.6C140.136 358.8 130.536 337 130.536 310.2H200.736C200.736 318.2 203.736 324.8 209.736 330C215.736 335.2 223.736 337.8 233.736 337.8C243.336 337.8 251.136 335 257.136 329.4C263.536 323.8 266.736 316.6 266.736 307.8C266.736 299.8 263.936 293.2 258.336 288C252.736 282.8 245.536 280.2 236.736 280.2H199.536V218.4H236.736C243.536 218.4 249.336 216 254.136 211.2C258.936 206.4 261.336 200.4 261.336 193.2C261.336 184.8 258.736 178.2 253.536 173.4C248.336 168.6 241.736 166.2 233.736 166.2C226.536 166.2 220.336 168.4 215.136 172.8C210.336 177.2 207.936 182.8 207.936 189.6H141.336C141.336 164.8 150.136 144.6 167.736 129C185.336 113 207.936 105 235.536 105C263.136 105 285.536 112.2 302.736 126.6C320.336 141 329.136 160 329.136 183.6C329.136 200.8 324.536 214.8 315.336 225.6C306.136 236 294.336 243.2 279.936 247.2C297.136 252 310.736 260.2 320.736 271.8C331.136 283.4 336.336 298 336.336 315.6C336.336 340.4 326.936 360.8 308.136 376.8C289.336 392.8 264.936 400.8 234.936 400.8Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M26.8714 167.6H1.67139V105.2H94.6714V400.2H26.8714V167.6Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M234.936 400.8C204.136 400.8 178.936 392.4 159.336 375.6C140.136 358.8 130.536 337 130.536 310.2H200.736C200.736 318.2 203.736 324.8 209.736 330C215.736 335.2 223.736 337.8 233.736 337.8C243.336 337.8 251.136 335 257.136 329.4C263.536 323.8 266.736 316.6 266.736 307.8C266.736 299.8 263.936 293.2 258.336 288C252.736 282.8 245.536 280.2 236.736 280.2H199.536V218.4H236.736C243.536 218.4 249.336 216 254.136 211.2C258.936 206.4 261.336 200.4 261.336 193.2C261.336 184.8 258.736 178.2 253.536 173.4C248.336 168.6 241.736 166.2 233.736 166.2C226.536 166.2 220.336 168.4 215.136 172.8C210.336 177.2 207.936 182.8 207.936 189.6H141.336C141.336 164.8 150.136 144.6 167.736 129C185.336 113 207.936 105 235.536 105C263.136 105 285.536 112.2 302.736 126.6C320.336 141 329.136 160 329.136 183.6C329.136 200.8 324.536 214.8 315.336 225.6C306.136 236 294.336 243.2 279.936 247.2C297.136 252 310.736 260.2 320.736 271.8C331.136 283.4 336.336 298 336.336 315.6C336.336 340.4 326.936 360.8 308.136 376.8C289.336 392.8 264.936 400.8 234.936 400.8Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-1-mask)"
-                        />
-                        <path
-                            d="M26.8714 167.6H1.67139V105.2H94.6714V400.2H26.8714V167.6Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-1-mask)"
-                        />
-                    </g>
-
-                    <g
-                        class="transition-all delay-400 opacity-100 duration-750 starting:opacity-0 motion-safe:starting:-translate-x-[26px] text-[#F3BEC7] dark:text-[#4B0600]"
-                    >
-                        <mask
-                            id="path-2-mask"
-                            maskUnits="userSpaceOnUse"
-                            x="25.3357"
-                            y="103"
-                            width="338"
-                            height="299"
-                            fill="black"
-                        >
-                            <rect
-                                fill="white"
-                                x="25.3357"
-                                y="103"
-                                width="338"
-                                height="299"
-                            />
-                            <path
-                                d="M260.6 400.8C229.8 400.8 204.6 392.4 185 375.6C165.8 358.8 156.2 337 156.2 310.2H226.4C226.4 318.2 229.4 324.8 235.4 330C241.4 335.2 249.4 337.8 259.4 337.8C269 337.8 276.8 335 282.8 329.4C289.2 323.8 292.4 316.6 292.4 307.8C292.4 299.8 289.6 293.2 284 288C278.4 282.8 271.2 280.2 262.4 280.2H225.2V218.4H262.4C269.2 218.4 275 216 279.8 211.2C284.6 206.4 287 200.4 287 193.2C287 184.8 284.4 178.2 279.2 173.4C274 168.6 267.4 166.2 259.4 166.2C252.2 166.2 246 168.4 240.8 172.8C236 177.2 233.6 182.8 233.6 189.6H167C167 164.8 175.8 144.6 193.4 129C211 113 233.6 105 261.2 105C288.8 105 311.2 112.2 328.4 126.6C346 141 354.8 160 354.8 183.6C354.8 200.8 350.2 214.8 341 225.6C331.8 236 320 243.2 305.6 247.2C322.8 252 336.4 260.2 346.4 271.8C356.8 283.4 362 298 362 315.6C362 340.4 352.6 360.8 333.8 376.8C315 392.8 290.6 400.8 260.6 400.8Z"
-                            />
-                            <path
-                                d="M52.5357 167.6H27.3357V105.2H120.336V400.2H52.5357V167.6Z"
-                            />
-                        </mask>
-                        <path
-                            d="M260.6 400.8C229.8 400.8 204.6 392.4 185 375.6C165.8 358.8 156.2 337 156.2 310.2H226.4C226.4 318.2 229.4 324.8 235.4 330C241.4 335.2 249.4 337.8 259.4 337.8C269 337.8 276.8 335 282.8 329.4C289.2 323.8 292.4 316.6 292.4 307.8C292.4 299.8 289.6 293.2 284 288C278.4 282.8 271.2 280.2 262.4 280.2H225.2V218.4H262.4C269.2 218.4 275 216 279.8 211.2C284.6 206.4 287 200.4 287 193.2C287 184.8 284.4 178.2 279.2 173.4C274 168.6 267.4 166.2 259.4 166.2C252.2 166.2 246 168.4 240.8 172.8C236 177.2 233.6 182.8 233.6 189.6H167C167 164.8 175.8 144.6 193.4 129C211 113 233.6 105 261.2 105C288.8 105 311.2 112.2 328.4 126.6C346 141 354.8 160 354.8 183.6C354.8 200.8 350.2 214.8 341 225.6C331.8 236 320 243.2 305.6 247.2C322.8 252 336.4 260.2 346.4 271.8C356.8 283.4 362 298 362 315.6C362 340.4 352.6 360.8 333.8 376.8C315 392.8 290.6 400.8 260.6 400.8Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M52.5357 167.6H27.3357V105.2H120.336V400.2H52.5357V167.6Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M260.6 400.8C229.8 400.8 204.6 392.4 185 375.6C165.8 358.8 156.2 337 156.2 310.2H226.4C226.4 318.2 229.4 324.8 235.4 330C241.4 335.2 249.4 337.8 259.4 337.8C269 337.8 276.8 335 282.8 329.4C289.2 323.8 292.4 316.6 292.4 307.8C292.4 299.8 289.6 293.2 284 288C278.4 282.8 271.2 280.2 262.4 280.2H225.2V218.4H262.4C269.2 218.4 275 216 279.8 211.2C284.6 206.4 287 200.4 287 193.2C287 184.8 284.4 178.2 279.2 173.4C274 168.6 267.4 166.2 259.4 166.2C252.2 166.2 246 168.4 240.8 172.8C236 177.2 233.6 182.8 233.6 189.6H167C167 164.8 175.8 144.6 193.4 129C211 113 233.6 105 261.2 105C288.8 105 311.2 112.2 328.4 126.6C346 141 354.8 160 354.8 183.6C354.8 200.8 350.2 214.8 341 225.6C331.8 236 320 243.2 305.6 247.2C322.8 252 336.4 260.2 346.4 271.8C356.8 283.4 362 298 362 315.6C362 340.4 352.6 360.8 333.8 376.8C315 392.8 290.6 400.8 260.6 400.8Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-2-mask)"
-                        />
-                        <path
-                            d="M52.5357 167.6H27.3357V105.2H120.336V400.2H52.5357V167.6Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-2-mask)"
-                        />
-                    </g>
-
-                    <g
-                        class="mix-blend-color dark:mix-blend-hard-light transition-all delay-400 opacity-100 duration-750 starting:opacity-0 motion-safe:starting:-translate-x-[51px] text-[#F8B803] dark:text-[#391800]"
-                    >
-                        <mask
-                            id="path-3-mask"
-                            maskUnits="userSpaceOnUse"
-                            x="51"
-                            y="103"
-                            width="338"
-                            height="299"
-                            fill="black"
-                        >
-                            <rect
-                                fill="white"
-                                x="51"
-                                y="103"
-                                width="338"
-                                height="299"
-                            />
-                            <path
-                                d="M286.264 400.8C255.464 400.8 230.264 392.4 210.664 375.6C191.464 358.8 181.864 337 181.864 310.2H252.064C252.064 318.2 255.064 324.8 261.064 330C267.064 335.2 275.064 337.8 285.064 337.8C294.664 337.8 302.464 335 308.464 329.4C314.864 323.8 318.064 316.6 318.064 307.8C318.064 299.8 315.264 293.2 309.664 288C304.064 282.8 296.864 280.2 288.064 280.2H250.864V218.4H288.064C294.864 218.4 300.664 216 305.464 211.2C310.264 206.4 312.664 200.4 312.664 193.2C312.664 184.8 310.064 178.2 304.864 173.4C299.664 168.6 293.064 166.2 285.064 166.2C277.864 166.2 271.664 168.4 266.464 172.8C261.664 177.2 259.264 182.8 259.264 189.6H192.664C192.664 164.8 201.464 144.6 219.064 129C236.664 113 259.264 105 286.864 105C314.464 105 336.864 112.2 354.064 126.6C371.664 141 380.464 160 380.464 183.6C380.464 200.8 375.864 214.8 366.664 225.6C357.464 236 345.664 243.2 331.264 247.2C348.464 252 362.064 260.2 372.064 271.8C382.464 283.4 387.664 298 387.664 315.6C387.664 340.4 378.264 360.8 359.464 376.8C340.664 392.8 316.264 400.8 286.264 400.8Z"
-                            />
-                            <path
-                                d="M78.2 167.6H53V105.2H146V400.2H78.2V167.6Z"
-                            />
-                        </mask>
-                        <path
-                            d="M286.264 400.8C255.464 400.8 230.264 392.4 210.664 375.6C191.464 358.8 181.864 337 181.864 310.2H252.064C252.064 318.2 255.064 324.8 261.064 330C267.064 335.2 275.064 337.8 285.064 337.8C294.664 337.8 302.464 335 308.464 329.4C314.864 323.8 318.064 316.6 318.064 307.8C318.064 299.8 315.264 293.2 309.664 288C304.064 282.8 296.864 280.2 288.064 280.2H250.864V218.4H288.064C294.864 218.4 300.664 216 305.464 211.2C310.264 206.4 312.664 200.4 312.664 193.2C312.664 184.8 310.064 178.2 304.864 173.4C299.664 168.6 293.064 166.2 285.064 166.2C277.864 166.2 271.664 168.4 266.464 172.8C261.664 177.2 259.264 182.8 259.264 189.6H192.664C192.664 164.8 201.464 144.6 219.064 129C236.664 113 259.264 105 286.864 105C314.464 105 336.864 112.2 354.064 126.6C371.664 141 380.464 160 380.464 183.6C380.464 200.8 375.864 214.8 366.664 225.6C357.464 236 345.664 243.2 331.264 247.2C348.464 252 362.064 260.2 372.064 271.8C382.464 283.4 387.664 298 387.664 315.6C387.664 340.4 378.264 360.8 359.464 376.8C340.664 392.8 316.264 400.8 286.264 400.8Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M78.2 167.6H53V105.2H146V400.2H78.2V167.6Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M286.264 400.8C255.464 400.8 230.264 392.4 210.664 375.6C191.464 358.8 181.864 337 181.864 310.2H252.064C252.064 318.2 255.064 324.8 261.064 330C267.064 335.2 275.064 337.8 285.064 337.8C294.664 337.8 302.464 335 308.464 329.4C314.864 323.8 318.064 316.6 318.064 307.8C318.064 299.8 315.264 293.2 309.664 288C304.064 282.8 296.864 280.2 288.064 280.2H250.864V218.4H288.064C294.864 218.4 300.664 216 305.464 211.2C310.264 206.4 312.664 200.4 312.664 193.2C312.664 184.8 310.064 178.2 304.864 173.4C299.664 168.6 293.064 166.2 285.064 166.2C277.864 166.2 271.664 168.4 266.464 172.8C261.664 177.2 259.264 182.8 259.264 189.6H192.664C192.664 164.8 201.464 144.6 219.064 129C236.664 113 259.264 105 286.864 105C314.464 105 336.864 112.2 354.064 126.6C371.664 141 380.464 160 380.464 183.6C380.464 200.8 375.864 214.8 366.664 225.6C357.464 236 345.664 243.2 331.264 247.2C348.464 252 362.064 260.2 372.064 271.8C382.464 283.4 387.664 298 387.664 315.6C387.664 340.4 378.264 360.8 359.464 376.8C340.664 392.8 316.264 400.8 286.264 400.8Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-3-mask)"
-                        />
-                        <path
-                            d="M78.2 167.6H53V105.2H146V400.2H78.2V167.6Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-3-mask)"
-                        />
-                    </g>
-
-                    <g
-                        class="mix-blend-multiply dark:mix-blend-normal transition-all delay-400 opacity-100 duration-750 starting:opacity-0 motion-safe:starting:-translate-x-[78px] text-[#F3BEC7] dark:text-[#733000]"
-                    >
-                        <mask
-                            id="path-4-mask"
-                            maskUnits="userSpaceOnUse"
-                            x="76.6643"
-                            y="103"
-                            width="338"
-                            height="299"
-                            fill="black"
-                        >
-                            <rect
-                                fill="white"
-                                x="76.6643"
-                                y="103"
-                                width="338"
-                                height="299"
-                            />
-                            <path
-                                d="M311.929 400.8C281.129 400.8 255.929 392.4 236.329 375.6C217.129 358.8 207.529 337 207.529 310.2H277.729C277.729 318.2 280.729 324.8 286.729 330C292.729 335.2 300.729 337.8 310.729 337.8C320.329 337.8 328.129 335 334.129 329.4C340.529 323.8 343.729 316.6 343.729 307.8C343.729 299.8 340.929 293.2 335.329 288C329.729 282.8 322.529 280.2 313.729 280.2H276.529V218.4H313.729C320.529 218.4 326.329 216 331.129 211.2C335.929 206.4 338.329 200.4 338.329 193.2C338.329 184.8 335.729 178.2 330.529 173.4C325.329 168.6 318.729 166.2 310.729 166.2C303.529 166.2 297.329 168.4 292.129 172.8C287.329 177.2 284.929 182.8 284.929 189.6H218.329C218.329 164.8 227.129 144.6 244.729 129C262.329 113 284.929 105 312.529 105C340.129 105 362.529 112.2 379.729 126.6C397.329 141 406.129 160 406.129 183.6C406.129 200.8 401.529 214.8 392.329 225.6C383.129 236 371.329 243.2 356.929 247.2C374.129 252 387.729 260.2 397.729 271.8C408.129 283.4 413.329 298 413.329 315.6C413.329 340.4 403.929 360.8 385.129 376.8C366.329 392.8 341.929 400.8 311.929 400.8Z"
-                            />
-                            <path
-                                d="M103.864 167.6H78.6643V105.2H171.664V400.2H103.864V167.6Z"
-                            />
-                        </mask>
-                        <path
-                            d="M311.929 400.8C281.129 400.8 255.929 392.4 236.329 375.6C217.129 358.8 207.529 337 207.529 310.2H277.729C277.729 318.2 280.729 324.8 286.729 330C292.729 335.2 300.729 337.8 310.729 337.8C320.329 337.8 328.129 335 334.129 329.4C340.529 323.8 343.729 316.6 343.729 307.8C343.729 299.8 340.929 293.2 335.329 288C329.729 282.8 322.529 280.2 313.729 280.2H276.529V218.4H313.729C320.529 218.4 326.329 216 331.129 211.2C335.929 206.4 338.329 200.4 338.329 193.2C338.329 184.8 335.729 178.2 330.529 173.4C325.329 168.6 318.729 166.2 310.729 166.2C303.529 166.2 297.329 168.4 292.129 172.8C287.329 177.2 284.929 182.8 284.929 189.6H218.329C218.329 164.8 227.129 144.6 244.729 129C262.329 113 284.929 105 312.529 105C340.129 105 362.529 112.2 379.729 126.6C397.329 141 406.129 160 406.129 183.6C406.129 200.8 401.529 214.8 392.329 225.6C383.129 236 371.329 243.2 356.929 247.2C374.129 252 387.729 260.2 397.729 271.8C408.129 283.4 413.329 298 413.329 315.6C413.329 340.4 403.929 360.8 385.129 376.8C366.329 392.8 341.929 400.8 311.929 400.8Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M103.864 167.6H78.6643V105.2H171.664V400.2H103.864V167.6Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M311.929 400.8C281.129 400.8 255.929 392.4 236.329 375.6C217.129 358.8 207.529 337 207.529 310.2H277.729C277.729 318.2 280.729 324.8 286.729 330C292.729 335.2 300.729 337.8 310.729 337.8C320.329 337.8 328.129 335 334.129 329.4C340.529 323.8 343.729 316.6 343.729 307.8C343.729 299.8 340.929 293.2 335.329 288C329.729 282.8 322.529 280.2 313.729 280.2H276.529V218.4H313.729C320.529 218.4 326.329 216 331.129 211.2C335.929 206.4 338.329 200.4 338.329 193.2C338.329 184.8 335.729 178.2 330.529 173.4C325.329 168.6 318.729 166.2 310.729 166.2C303.529 166.2 297.329 168.4 292.129 172.8C287.329 177.2 284.929 182.8 284.929 189.6H218.329C218.329 164.8 227.129 144.6 244.729 129C262.329 113 284.929 105 312.529 105C340.129 105 362.529 112.2 379.729 126.6C397.329 141 406.129 160 406.129 183.6C406.129 200.8 401.529 214.8 392.329 225.6C383.129 236 371.329 243.2 356.929 247.2C374.129 252 387.729 260.2 397.729 271.8C408.129 283.4 413.329 298 413.329 315.6C413.329 340.4 403.929 360.8 385.129 376.8C366.329 392.8 341.929 400.8 311.929 400.8Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-4-mask)"
-                        />
-                        <path
-                            d="M103.864 167.6H78.6643V105.2H171.664V400.2H103.864V167.6Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-4-mask)"
-                        />
-                    </g>
-
-                    <g
-                        class="mix-blend-hard-light transition-all delay-400 opacity-100 duration-750 starting:opacity-0 motion-safe:starting:-translate-x-[102px] text-[#F3BEC7] dark:text-[#4B0600]"
-                    >
-                        <mask
-                            id="path-5-mask"
-                            maskUnits="userSpaceOnUse"
-                            x="102.329"
-                            y="103"
-                            width="338"
-                            height="299"
-                            fill="black"
-                        >
-                            <rect
-                                fill="white"
-                                x="102.329"
-                                y="103"
-                                width="338"
-                                height="299"
-                            />
-                            <path
-                                d="M337.593 400.8C306.793 400.8 281.593 392.4 261.993 375.6C242.793 358.8 233.193 337 233.193 310.2H303.393C303.393 318.2 306.393 324.8 312.393 330C318.393 335.2 326.393 337.8 336.393 337.8C345.993 337.8 353.793 335 359.793 329.4C366.193 323.8 369.393 316.6 369.393 307.8C369.393 299.8 366.593 293.2 360.993 288C355.393 282.8 348.193 280.2 339.393 280.2H302.193V218.4H339.393C346.193 218.4 351.993 216 356.793 211.2C361.593 206.4 363.993 200.4 363.993 193.2C363.993 184.8 361.393 178.2 356.193 173.4C350.993 168.6 344.393 166.2 336.393 166.2C329.193 166.2 322.993 168.4 317.793 172.8C312.993 177.2 310.593 182.8 310.593 189.6H243.993C243.993 164.8 252.793 144.6 270.393 129C287.993 113 310.593 105 338.193 105C365.793 105 388.193 112.2 405.393 126.6C422.993 141 431.793 160 431.793 183.6C431.793 200.8 427.193 214.8 417.993 225.6C408.793 236 396.993 243.2 382.593 247.2C399.793 252 413.393 260.2 423.393 271.8C433.793 283.4 438.993 298 438.993 315.6C438.993 340.4 429.593 360.8 410.793 376.8C391.993 392.8 367.593 400.8 337.593 400.8Z"
-                            />
-                            <path
-                                d="M129.529 167.6H104.329V105.2H197.329V400.2H129.529V167.6Z"
-                            />
-                        </mask>
-                        <path
-                            d="M337.593 400.8C306.793 400.8 281.593 392.4 261.993 375.6C242.793 358.8 233.193 337 233.193 310.2H303.393C303.393 318.2 306.393 324.8 312.393 330C318.393 335.2 326.393 337.8 336.393 337.8C345.993 337.8 353.793 335 359.793 329.4C366.193 323.8 369.393 316.6 369.393 307.8C369.393 299.8 366.593 293.2 360.993 288C355.393 282.8 348.193 280.2 339.393 280.2H302.193V218.4H339.393C346.193 218.4 351.993 216 356.793 211.2C361.593 206.4 363.993 200.4 363.993 193.2C363.993 184.8 361.393 178.2 356.193 173.4C350.993 168.6 344.393 166.2 336.393 166.2C329.193 166.2 322.993 168.4 317.793 172.8C312.993 177.2 310.593 182.8 310.593 189.6H243.993C243.993 164.8 252.793 144.6 270.393 129C287.993 113 310.593 105 338.193 105C365.793 105 388.193 112.2 405.393 126.6C422.993 141 431.793 160 431.793 183.6C431.793 200.8 427.193 214.8 417.993 225.6C408.793 236 396.993 243.2 382.593 247.2C399.793 252 413.393 260.2 423.393 271.8C433.793 283.4 438.993 298 438.993 315.6C438.993 340.4 429.593 360.8 410.793 376.8C391.993 392.8 367.593 400.8 337.593 400.8Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M129.529 167.6H104.329V105.2H197.329V400.2H129.529V167.6Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M337.593 400.8C306.793 400.8 281.593 392.4 261.993 375.6C242.793 358.8 233.193 337 233.193 310.2H303.393C303.393 318.2 306.393 324.8 312.393 330C318.393 335.2 326.393 337.8 336.393 337.8C345.993 337.8 353.793 335 359.793 329.4C366.193 323.8 369.393 316.6 369.393 307.8C369.393 299.8 366.593 293.2 360.993 288C355.393 282.8 348.193 280.2 339.393 280.2H302.193V218.4H339.393C346.193 218.4 351.993 216 356.793 211.2C361.593 206.4 363.993 200.4 363.993 193.2C363.993 184.8 361.393 178.2 356.193 173.4C350.993 168.6 344.393 166.2 336.393 166.2C329.193 166.2 322.993 168.4 317.793 172.8C312.993 177.2 310.593 182.8 310.593 189.6H243.993C243.993 164.8 252.793 144.6 270.393 129C287.993 113 310.593 105 338.193 105C365.793 105 388.193 112.2 405.393 126.6C422.993 141 431.793 160 431.793 183.6C431.793 200.8 427.193 214.8 417.993 225.6C408.793 236 396.993 243.2 382.593 247.2C399.793 252 413.393 260.2 423.393 271.8C433.793 283.4 438.993 298 438.993 315.6C438.993 340.4 429.593 360.8 410.793 376.8C391.993 392.8 367.593 400.8 337.593 400.8Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-5-mask)"
-                        />
-                        <path
-                            d="M129.529 167.6H104.329V105.2H197.329V400.2H129.529V167.6Z"
-                            stroke="var(--stroke-color)"
-                            stroke-width="2.4"
-                            mask="url(#path-5-mask)"
-                        />
-                    </g>
-                </svg>
-                <div
-                    class="absolute inset-0 rounded-t-lg lg:rounded-t-none lg:rounded-r-lg shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
-                ></div>
-            </div>
-        </main>
+        {#if isAuthenticated}
+          <Link
+            href="/client"
+            class="ml-1 inline-flex items-center justify-center rounded-md bg-ink px-3.5 py-2 text-xs font-semibold text-page transition-opacity hover:opacity-90 sm:text-sm"
+          >
+            {content.nav.clientArea}
+          </Link>
+        {:else}
+          <Link
+            href="/login"
+            class="hidden rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-ink sm:inline-flex"
+          >
+            {content.nav.signIn}
+          </Link>
+          <Link
+            href="/register"
+            class="ml-1 inline-flex items-center justify-center rounded-md bg-ink px-3.5 py-2 text-xs font-semibold text-page transition-opacity hover:opacity-90 sm:text-sm"
+          >
+            {content.nav.getStarted}
+          </Link>
+        {/if}
+      </div>
     </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="relative pt-12 sm:pt-20 lg:pt-24" aria-labelledby="hero-heading">
+    <div class="mx-auto w-full max-w-7xl px-5 text-center sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-5xl">
+        <h1
+          id="hero-heading"
+          class="animate-rise-delayed text-balance text-[2rem] font-semibold leading-[1.06] tracking-[-0.045em] text-ink sm:text-6xl lg:text-[4.2rem]"
+        >
+          {content.hero.titleLead}
+          <span class="block text-accent">{content.hero.titleAccent}</span>
+        </h1>
+
+        <p class="animate-rise-delayed mx-auto mt-6 max-w-3xl text-base leading-7 text-muted sm:text-lg sm:leading-8">
+          {content.hero.description}
+        </p>
+
+        <div class="animate-rise-delayed mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          {#if isAuthenticated}
+            <Link
+              href="/client"
+              class="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 text-sm font-semibold text-page transition-opacity hover:opacity-90 sm:w-auto"
+            >
+              {content.hero.primaryAuthCta}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 transition-transform duration-200 group-hover:translate-x-0.5">
+                <path d="M5 12h14"/>
+                <path d="m12 5 7 7-7 7"/>
+              </svg>
+            </Link>
+          {:else}
+            <Link
+              href="/register"
+              class="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 text-sm font-semibold text-page transition-opacity hover:opacity-90 sm:w-auto"
+            >
+              {content.hero.primaryCta}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 transition-transform duration-200 group-hover:translate-x-0.5">
+                <path d="M5 12h14"/>
+                <path d="m12 5 7 7-7 7"/>
+              </svg>
+            </Link>
+            <Link
+              href="/login"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-line bg-surface/60 px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-muted sm:w-auto"
+            >
+              {content.hero.secondaryCta}
+            </Link>
+          {/if}
+        </div>
+
+        <p class="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-faint">
+          {content.hero.platforms}
+        </p>
+      </div>
+    </div>
+
+    <div class="relative mx-auto mt-10 w-full max-w-7xl px-5 sm:mt-14 sm:px-6 lg:px-8">
+      <div
+        class="pointer-events-none absolute inset-x-16 top-10 h-52 rounded-full bg-accent-soft blur-[110px]"
+        aria-hidden="true"
+      ></div>
+      <button
+        type="button"
+        class="animate-rise-delayed group relative block w-full cursor-zoom-in overflow-hidden rounded-xl border border-line-strong bg-surface p-1.5 text-left shadow-2xl shadow-black/20 focus:outline-none focus:ring-2 focus:ring-accent dark:shadow-black/60"
+        onclick={() =>
+          openZoom(
+            "/demo/client-area-backup-schedules.png",
+            "Nova Backups Panel Backup Schedules workspace",
+            "Nova Backups Panel - Backup Schedules",
+          )}
+        aria-label="Zoom Nova Backups Panel preview"
+      >
+        <div class="relative overflow-hidden rounded-lg border border-line bg-surface-muted">
+          <div class="flex h-9 items-center gap-2 border-b border-line px-3.5">
+            <div class="flex items-center gap-1.5" aria-hidden="true">
+              <span class="h-2 w-2 rounded-full bg-[#ff5f57]/80"></span>
+              <span class="h-2 w-2 rounded-full bg-[#febc2e]/80"></span>
+              <span class="h-2 w-2 rounded-full bg-[#28c840]/80"></span>
+            </div>
+            <div class="mx-auto flex min-w-0 items-center gap-1.5 text-[10px] font-medium text-faint sm:text-xs">
+              <span class="truncate">Nova Backups Panel</span>
+              <span class="text-line-strong">/</span>
+              <span class="truncate text-muted">{content.showcase.items[0].title}</span>
+            </div>
+            <span class="flex items-center gap-1 text-[10px] text-faint opacity-0 transition-opacity group-hover:opacity-100">
+              Zoom
+            </span>
+          </div>
+          <img
+            src="/demo/client-area-backup-schedules.png"
+            alt="Nova Backups Panel Backup Schedules workspace"
+            class="block h-auto w-full"
+            decoding="async"
+          />
+        </div>
+      </button>
+    </div>
+
+    <div class="relative mx-auto mt-8 w-full max-w-7xl px-5 sm:mt-10 sm:px-6 lg:px-8">
+      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line lg:grid-cols-4">
+        {#each content.hero.stats as stat}
+          <div class="bg-page px-4 py-5 sm:px-5">
+            <dt class="text-lg font-semibold tracking-tight text-ink sm:text-xl">
+              {stat.value}
+            </dt>
+            <dd class="mt-1 text-[10px] uppercase leading-4 tracking-[0.08em] text-faint sm:text-xs">
+              {stat.label}
+            </dd>
+          </div>
+        {/each}
+      </dl>
+    </div>
+  </section>
+
+  <!-- Product Showcase -->
+  <section id="product" class="relative scroll-mt-20 py-14 sm:py-24">
+    <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div class="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16">
+        <div class="lg:sticky lg:top-24 lg:self-start">
+          <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+            {content.showcase.eyebrow}
+          </p>
+          <h2 class="mt-4 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-4xl lg:text-[2.65rem] lg:leading-[1.08]">
+            {content.showcase.title}
+          </h2>
+          <p class="mt-4 max-w-md text-sm leading-6 text-muted sm:text-base sm:leading-7">
+            {content.showcase.description}
+          </p>
+
+          <div class="mt-6 sm:mt-8" role="tablist" aria-label="Product views">
+            {#each showcaseItems as item, index}
+              <button
+                type="button"
+                role="tab"
+                id={`showcase-tab-${index}`}
+                aria-controls="showcase-panel"
+                aria-selected={activeShowcase === index}
+                class="group flex w-full cursor-pointer items-start gap-3 border-t border-l-2 border-line border-l-transparent py-4 pl-3 pr-1 text-left transition-colors {activeShowcase ===
+                index
+                  ? 'border-l-accent'
+                  : 'hover:bg-surface/40'}"
+                onclick={() => (activeShowcase = index)}
+              >
+                <span class="mt-0.5 font-mono text-[10px] {activeShowcase === index ? 'text-accent' : 'text-faint'}">
+                  0{index + 1}
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-semibold {activeShowcase === index ? 'text-ink' : 'text-muted group-hover:text-ink'}">
+                    {item.title}
+                  </span>
+                  <span class="mt-1 block text-xs leading-5 text-faint">
+                    {item.label}
+                  </span>
+                </span>
+              </button>
+            {/each}
+          </div>
+        </div>
+
+        <div id="showcase-panel" role="tabpanel" aria-labelledby={`showcase-tab-${activeShowcase}`}>
+          <figure class="overflow-hidden rounded-xl border border-line-strong bg-surface p-1.5 shadow-xl shadow-black/10 dark:shadow-black/40">
+            <div class="overflow-hidden rounded-lg border border-line bg-surface-muted">
+              <div class="flex h-9 items-center gap-2 border-b border-line px-3.5">
+                <div class="flex items-center gap-1.5" aria-hidden="true">
+                  <span class="h-2 w-2 rounded-full bg-[#ff5f57]/80"></span>
+                  <span class="h-2 w-2 rounded-full bg-[#febc2e]/80"></span>
+                  <span class="h-2 w-2 rounded-full bg-[#28c840]/80"></span>
+                </div>
+                <span class="mx-auto flex min-w-0 items-center gap-1.5 text-[10px] text-faint sm:text-xs">
+                  <span class="truncate">{activeItem.label}</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                class="group relative block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left focus:outline-none focus:ring-2 focus:ring-accent"
+                onclick={() => openZoom(activeItem.image, activeItem.alt, activeItem.title)}
+                aria-label={`Zoom ${activeItem.title} screenshot`}
+              >
+                {#each showcaseItems as item, index}
+                  <img
+                    src={item.image}
+                    alt={activeShowcase === index ? item.alt : ""}
+                    aria-hidden={activeShowcase !== index}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    class={activeShowcase === index ? "block h-auto w-full" : "hidden"}
+                  />
+                {/each}
+                <div class="pointer-events-none absolute bottom-3 right-3 rounded-md border border-line bg-page/85 px-2.5 py-1 text-xs font-medium text-faint shadow-md backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100">
+                  Zoom
+                </div>
+              </button>
+            </div>
+          </figure>
+
+          <div class="mt-5 min-h-14">
+            <p class="text-sm leading-6 text-muted">{activeItem.description}</p>
+            <ul class="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+              {#each activeItem.bullets as bullet}
+                <li class="flex items-center gap-1.5 text-xs text-faint">
+                  <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+                  {bullet}
+                </li>
+              {/each}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow -->
+  <section id="features" class="relative scroll-mt-20 border-t border-line py-14 sm:py-24">
+    <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div class="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
+        <div class="lg:sticky lg:top-24 lg:self-start">
+          <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+            {content.workflow.eyebrow}
+          </p>
+          <h2 class="mt-4 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-4xl lg:text-[2.65rem] lg:leading-[1.08]">
+            {content.workflow.title}
+          </h2>
+          <p class="mt-4 max-w-md text-sm leading-6 text-muted sm:text-base sm:leading-7">
+            {content.workflow.description}
+          </p>
+          <blockquote class="mt-6 border-l border-accent/40 pl-5 sm:mt-8">
+            <p class="text-sm leading-6 text-ink">
+              “{content.workflow.quote}”
+            </p>
+            <footer class="mt-2 text-xs uppercase tracking-[0.12em] text-faint">
+              - {content.workflow.quoteSource}
+            </footer>
+          </blockquote>
+        </div>
+
+        <ol class="border-y border-line">
+          {#each content.workflow.steps as step}
+            <li class="grid grid-cols-[auto_1fr] gap-4 border-b border-line py-6 last:border-b-0 sm:gap-8 sm:py-8">
+              <span class="font-mono text-xs text-accent">{step.number}</span>
+              <div>
+                <h3 class="text-lg font-semibold tracking-tight text-ink">{step.title}</h3>
+                <p class="mt-2 max-w-lg text-sm leading-6 text-muted">{step.description}</p>
+              </div>
+            </li>
+          {/each}
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Capabilities -->
+  <section id="capabilities" class="relative scroll-mt-20 border-t border-line py-14 sm:py-24">
+    <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div class="max-w-3xl">
+        <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+          {content.capabilities.eyebrow}
+        </p>
+        <h2 class="mt-4 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-4xl lg:text-[2.65rem] lg:leading-[1.08]">
+          {content.capabilities.title}
+        </h2>
+        <p class="mt-4 text-sm leading-6 text-muted sm:text-base sm:leading-7">
+          {content.capabilities.description}
+        </p>
+      </div>
+
+      <div class="mt-10 grid gap-4 lg:grid-cols-3">
+        <article class="rounded-xl border border-line bg-surface p-5 transition-colors hover:border-line-strong sm:p-6 lg:col-span-2">
+          <div class="grid min-w-0 gap-5 sm:grid-cols-[1fr_1.05fr] sm:items-center sm:gap-6">
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold text-ink">{content.capabilities.patternTitle}</h3>
+              <p class="mt-3 text-sm leading-6 text-muted">
+                {content.capabilities.patternDescription}
+              </p>
+              <p class="mt-4 font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
+                {content.capabilities.patternFootnote}
+              </p>
+            </div>
+
+            <div class="min-w-0 overflow-hidden rounded-lg border border-white/10 bg-code-bg shadow-inner">
+              <div class="flex items-center justify-between border-b border-white/10 px-3.5 py-2">
+                <span class="flex items-center gap-1.5 font-mono text-[10px] text-code-ink/60">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-400/80"></span>
+                  schedule.json
+                </span>
+                <span class="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-code-ink/50">
+                  Enabled
+                </span>
+              </div>
+              <pre class="max-w-full overflow-x-auto px-3.5 py-3 font-mono text-[10px] leading-6 text-code-ink sm:text-xs"><code><span class="text-code-ink/60">{"{"}</span>
+  <span class="text-sky-300">"type"</span><span class="text-code-ink/60">:</span> <span class="text-emerald-300">"database"</span><span class="text-code-ink/60">,</span>
+  <span class="text-sky-300">"pattern"</span><span class="text-code-ink/60">:</span> <span class="text-emerald-300">"backup-&#123;Ymd-His&#125;"</span><span class="text-code-ink/60">,</span>
+  <span class="text-sky-300">"interval"</span><span class="text-code-ink/60">:</span> <span class="text-emerald-300">"3 days"</span><span class="text-code-ink/60">,</span>
+  <span class="text-sky-300">"sync_cloud"</span><span class="text-code-ink/60">:</span> <span class="text-amber-300">true</span>
+<span class="text-code-ink/60">{"}"}</span></code></pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-xl border border-line bg-surface p-5 transition-colors hover:border-line-strong sm:p-6">
+          <h3 class="text-sm font-semibold text-ink">{content.capabilities.cloudTitle}</h3>
+          <p class="mt-3 text-sm leading-6 text-muted">
+            {content.capabilities.cloudDescription}
+          </p>
+
+          <div class="mt-5 space-y-2 font-mono text-[10px]">
+            <div class="flex items-center justify-between rounded border border-line bg-page px-2.5 py-2 text-muted">
+              <span>Local Archive</span>
+              <span class="text-accent">Step 1</span>
+            </div>
+            <div class="ml-3 space-y-2 border-l border-line pl-3">
+              <div class="flex items-center justify-between rounded border border-line bg-page px-2.5 py-2 text-muted">
+                <span>S3 Storage</span>
+                <span class="text-accent">Cloud</span>
+              </div>
+              <div class="flex items-center justify-between rounded border border-line bg-page px-2.5 py-2 text-muted">
+                <span>Google Drive</span>
+                <span class="text-accent">Cloud</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-xl border border-line bg-surface p-5 transition-colors hover:border-line-strong sm:p-6 lg:col-span-2">
+          <h3 class="text-sm font-semibold text-ink">{content.capabilities.logsTitle}</h3>
+          <p class="mt-3 max-w-xl text-sm leading-6 text-muted">
+            {content.capabilities.logsDescription}
+          </p>
+          <button
+            type="button"
+            class="group relative mt-5 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-line bg-surface-muted p-0 text-left focus:outline-none focus:ring-2 focus:ring-accent"
+            onclick={() => openZoom("/demo/client-area-backups.png", "Backup execution history", content.capabilities.logsTitle)}
+            aria-label={`Zoom ${content.capabilities.logsTitle} preview`}
+          >
+            <img
+              src="/demo/client-area-backups.png"
+              alt="Backup execution history"
+              loading="lazy"
+              decoding="async"
+              class="h-auto w-full"
+            />
+          </button>
+        </article>
+
+        <article class="flex flex-col rounded-xl border border-line bg-surface p-5 transition-colors hover:border-line-strong sm:p-6">
+          <h3 class="text-sm font-semibold text-ink">{content.capabilities.prefsTitle}</h3>
+          <p class="mt-3 text-sm leading-6 text-muted">
+            {content.capabilities.prefsDescription}
+          </p>
+          <button
+            type="button"
+            class="group relative mt-5 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-line bg-surface-muted p-0 text-left focus:outline-none focus:ring-2 focus:ring-accent"
+            onclick={() => openZoom("/demo/client-area-preference.png", "Preferences panel", content.capabilities.prefsTitle)}
+            aria-label={`Zoom ${content.capabilities.prefsTitle} preview`}
+          >
+            <img
+              src="/demo/client-area-preference.png"
+              alt="Preferences panel"
+              loading="lazy"
+              decoding="async"
+              class="h-auto w-full"
+            />
+          </button>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture" class="relative scroll-mt-20 border-y border-line bg-surface py-14 sm:py-24">
+    <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div class="grid-lines absolute inset-0 opacity-20"></div>
+    </div>
+    <div class="relative mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div class="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-20">
+        <div>
+          <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+            {content.architecture.eyebrow}
+          </p>
+          <h2 class="mt-4 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-4xl lg:text-[2.65rem] lg:leading-[1.08]">
+            {content.architecture.title}
+          </h2>
+          <p class="mt-4 max-w-lg text-sm leading-6 text-muted sm:text-base sm:leading-7">
+            {content.architecture.description}
+          </p>
+
+          <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:mt-8">
+            {#each content.architecture.stats as stat}
+              <div class="bg-page px-4 py-4">
+                <dt class="text-lg font-semibold tracking-tight text-ink">{stat.value}</dt>
+                <dd class="mt-1 text-[10px] leading-4 text-faint">{stat.label}</dd>
+              </div>
+            {/each}
+          </dl>
+        </div>
+
+        <div class="rounded-xl border border-line bg-page p-5 sm:p-6">
+          <div class="space-y-2">
+            {#each content.architecture.layers as layer, index}
+              <div class="rounded-lg border border-line bg-surface px-4 py-3">
+                <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <span class="text-[10px] uppercase tracking-[0.14em] text-faint">
+                    {layer.label}
+                  </span>
+                  <span class="font-mono text-[10px] leading-4 text-muted sm:text-right">
+                    {layer.detail}
+                  </span>
+                </div>
+              </div>
+              {#if index < content.architecture.layers.length - 1}
+                <div class="flex justify-center" aria-hidden="true">
+                  <span class="h-2 w-px bg-line-strong"></span>
+                </div>
+              {/if}
+            {/each}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security -->
+  <section id="security" class="relative scroll-mt-20 py-14 sm:py-24">
+    <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div class="relative overflow-hidden rounded-2xl border border-line bg-surface p-5 sm:p-10 lg:p-14">
+        <div
+          class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent-soft blur-3xl"
+          aria-hidden="true"
+        ></div>
+
+        <div class="relative grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+          <div>
+            <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+              {content.security.eyebrow}
+            </p>
+            <h2 class="mt-4 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-4xl lg:text-[2.65rem] lg:leading-[1.08]">
+              {content.security.title}
+            </h2>
+            <p class="mt-4 max-w-md text-sm leading-6 text-muted sm:text-base sm:leading-7">
+              {content.security.description}
+            </p>
+
+            <div class="mt-6 flex flex-wrap gap-2">
+              {#each content.security.badges as badge}
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-line bg-page px-3 py-1 text-xs text-muted">
+                  <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+                  {badge}
+                </span>
+              {/each}
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            {#each content.security.items as item}
+              <div class="rounded-lg border border-line bg-page p-4 sm:p-5">
+                <h3 class="text-sm font-semibold text-ink">{item.title}</h3>
+                <p class="mt-2 text-xs leading-5 text-muted">{item.description}</p>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="relative scroll-mt-20 border-t border-line py-14 sm:py-24">
+    <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div class="max-w-2xl">
+        <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+          {content.faq.eyebrow}
+        </p>
+        <h2 class="mt-4 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-4xl lg:text-[2.65rem] lg:leading-[1.08]">
+          {content.faq.title}
+        </h2>
+        <p class="mt-4 text-sm leading-6 text-muted sm:text-base sm:leading-7">
+          {content.faq.description}
+        </p>
+      </div>
+
+      <div class="mt-10 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+        {#each faqs as item (item.uid)}
+          <details class="group">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 text-left text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden sm:px-6">
+              {item.question[lang]}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0 text-faint transition-transform group-open:rotate-180">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </summary>
+            <p class="px-5 pb-5 text-sm leading-6 text-muted sm:px-6">{item.answer[lang]}</p>
+          </details>
+        {/each}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="relative border-t border-line py-14 sm:py-24">
+    <div class="mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+      <div class="relative overflow-hidden rounded-2xl border border-line bg-surface px-5 py-10 text-center sm:px-10 sm:py-16">
+        <div class="hero-halo pointer-events-none absolute inset-0" aria-hidden="true"></div>
+        <div class="relative mx-auto max-w-2xl">
+          <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+            {content.cta.eyebrow}
+          </p>
+          <h2 class="mt-4 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-4xl lg:text-[2.65rem] lg:leading-[1.08]">
+            {content.cta.title}
+          </h2>
+          <p class="mt-4 text-sm leading-6 text-muted sm:text-base sm:leading-7">
+            {content.cta.description}
+          </p>
+
+          <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {#if isAuthenticated}
+              <Link
+                href="/client"
+                class="inline-flex w-full items-center justify-center rounded-md bg-ink px-5 py-3 text-sm font-semibold text-page transition-opacity hover:opacity-90 sm:w-auto"
+              >
+                {content.cta.primaryAuthCta}
+              </Link>
+            {:else}
+              <Link
+                href="/register"
+                class="inline-flex w-full items-center justify-center rounded-md bg-ink px-5 py-3 text-sm font-semibold text-page transition-opacity hover:opacity-90 sm:w-auto"
+              >
+                {content.cta.primaryCta}
+              </Link>
+              <Link
+                href="/login"
+                class="inline-flex w-full items-center justify-center rounded-md border border-line bg-page px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-muted sm:w-auto"
+              >
+                {content.cta.secondaryCta}
+              </Link>
+            {/if}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-line bg-page">
+    <div class="mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <div class="grid gap-10 sm:gap-12 lg:grid-cols-[1.1fr_1.9fr] lg:gap-16">
+        <div class="max-w-sm">
+          <Link href="/" class="flex w-fit items-center gap-2.5" aria-label="Nova Backups home">
+            <img
+              src="/logo.png"
+              alt=""
+              width="28"
+              height="28"
+              class="h-7 w-7 rounded-[7px] object-contain"
+            />
+            <span class="text-sm font-semibold tracking-tight text-ink">Nova Backups</span>
+          </Link>
+          <p class="mt-3 text-sm leading-6 text-muted">
+            {content.footer.description}
+          </p>
+          <p class="mt-3 inline-flex items-center gap-2 text-sm leading-6 text-faint">
+            <span class="status-dot h-1.5 w-1.5 shrink-0 rounded-full bg-accent"></span>
+            <span class="inline-flex items-center gap-1">
+              <span>With</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="size-3.5 text-rose-500" aria-hidden="true">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+              <span>by</span>
+              <a
+                href="https://novaardiansyah.id"
+                target="_blank"
+                rel="noreferrer"
+                class="font-medium text-ink transition-colors hover:text-accent"
+              >
+                Nova Ardiansyah
+              </a>
+            </span>
+          </p>
+        </div>
+
+        <div class="grid gap-8 sm:grid-cols-3 sm:gap-8">
+          <div class="min-w-0">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.12em] text-faint">
+              {content.footer.productTitle}
+            </h2>
+            <ul class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:block sm:space-y-2">
+              <li><a href="#product" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.showcase}</a></li>
+              <li><a href="#features" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.workflow}</a></li>
+              <li><a href="#capabilities" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.capabilities}</a></li>
+              <li><a href="#architecture" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.architecture}</a></li>
+              <li><a href="#faq" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.faq}</a></li>
+            </ul>
+          </div>
+
+          <div class="min-w-0">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.12em] text-faint">
+              {content.footer.workspaceTitle}
+            </h2>
+            <ul class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:block sm:space-y-2">
+              <li><Link href="/client" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.clientArea}</Link></li>
+              <li><Link href="/login" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.signIn}</Link></li>
+              <li><Link href="/register" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.nav.getStarted}</Link></li>
+            </ul>
+          </div>
+
+          <div class="min-w-0">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.12em] text-faint">
+              {content.footer.legalTitle}
+            </h2>
+            <ul class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:block sm:space-y-2">
+              <li><Link href="/terms" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.footer.terms}</Link></li>
+              <li><Link href="/privacy" class="block text-sm leading-6 text-muted transition-colors hover:text-ink">{content.footer.privacy}</Link></li>
+              <li>
+                <a
+                  href="https://novaardiansyah.id"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="block text-sm leading-6 text-muted transition-colors hover:text-ink"
+                >
+                  novaardiansyah.id
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 border-t border-line pt-6 sm:mt-12">
+        <div class="flex flex-col items-center gap-3 text-center text-sm leading-6 text-faint lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:text-left">
+          <p class="max-w-md text-pretty">{content.footer.copyright}</p>
+          <p class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 lg:justify-start lg:gap-x-2.5">
+            <span class="whitespace-nowrap">{content.footer.license}</span>
+            <span aria-hidden="true" class="hidden text-line-strong lg:inline">&middot;</span>
+            <a
+              href="https://novaardiansyah.id"
+              target="_blank"
+              rel="noreferrer"
+              class="whitespace-nowrap transition-colors hover:text-ink"
+            >
+              novaardiansyah.id
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </footer>
 </div>
+
+{#if zoomedImage}
+  <div
+    class="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-md"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Image Preview"
+  >
+    <div class="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4 sm:px-6">
+      <div class="flex items-center gap-2 text-sm font-medium text-white">
+        <span class="truncate">{zoomedImage.title}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          onclick={toggleResolution}
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
+        >
+          {isFullResolution ? "Fit Screen" : "Zoom 100%"}
+        </button>
+        <button
+          type="button"
+          onclick={closeZoom}
+          aria-label="Close preview"
+          class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-white/10 text-white transition-colors hover:bg-white/20"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="relative flex flex-1 items-center justify-center overflow-auto p-4 sm:p-8">
+      <button
+        type="button"
+        class="absolute inset-0 h-full w-full cursor-default border-0 bg-transparent p-0"
+        onclick={closeZoom}
+        aria-label="Close preview backdrop"
+        tabindex="-1"
+      ></button>
+      <button
+        type="button"
+        onclick={toggleResolution}
+        class="relative z-10 rounded-lg border-0 bg-transparent p-0 focus:outline-none focus:ring-2 focus:ring-accent"
+        aria-label={isFullResolution ? "Fit Screen" : "Zoom 100%"}
+      >
+        <img
+          src={zoomedImage.src}
+          alt={zoomedImage.alt}
+          class="{isFullResolution
+            ? 'max-w-none cursor-zoom-out'
+            : 'max-h-[85vh] max-w-full cursor-zoom-in object-contain'} rounded-lg shadow-2xl transition-all duration-200"
+        />
+      </button>
+    </div>
+  </div>
+{/if}

@@ -144,3 +144,60 @@
     color: var(--color-ink);
   }
 }
+
+.hero-halo {
+  background:
+    radial-gradient(60% 55% at 50% 0%, rgba(52, 211, 153, 0.16), transparent 70%),
+    radial-gradient(35% 35% at 82% 12%, rgba(110, 231, 183, 0.08), transparent 70%);
+}
+
+html:not(.dark) .hero-halo {
+  background:
+    radial-gradient(60% 55% at 50% 0%, rgba(16, 185, 129, 0.12), transparent 70%),
+    radial-gradient(35% 35% at 82% 12%, rgba(16, 185, 129, 0.07), transparent 70%);
+}
+
+.grid-lines {
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+.mask-fade-b {
+  mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-rise {
+    animation: rise-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-rise-delayed {
+    animation: rise-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+  }
+
+  .status-dot {
+    animation: soft-pulse 3.2s ease-in-out infinite;
+  }
+}

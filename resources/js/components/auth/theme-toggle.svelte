@@ -1,19 +1,42 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { router } from "@inertiajs/svelte";
   import { Button } from "@/components/ui/button/index.js";
+  import { applyTheme, type LocalePreference, type ThemePreference } from "@/lib/theme.js";
+
+  interface Props {
+    locale?: LocalePreference;
+    persist?: boolean;
+    onstatus?: (message: string) => void;
+  }
+
+  let { locale, persist = false, onstatus }: Props = $props();
 
   let isDark = $state(false);
 
-  onMount(() => {
+  $effect(() => {
     isDark = document.documentElement.classList.contains("dark");
   });
 
   function toggle() {
-    isDark = !isDark;
-    document.documentElement.classList.toggle("dark", isDark);
-    try {
-      localStorage.setItem("nova-theme", isDark ? "dark" : "light");
-    } catch {
+    const nextTheme: ThemePreference = isDark ? "light" : "dark";
+    applyTheme(nextTheme);
+    isDark = nextTheme === "dark";
+
+    if (persist && locale) {
+      router.put(
+        "/client/preferences",
+        { theme: nextTheme, locale },
+        {
+          preserveScroll: true,
+          preserveState: true,
+          onSuccess: (page) => {
+            const nextStatus = (page.props as { status?: string | null }).status;
+            if (nextStatus) {
+              onstatus?.(nextStatus);
+            }
+          },
+        },
+      );
     }
   }
 </script>
