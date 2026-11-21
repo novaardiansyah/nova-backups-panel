@@ -1,6 +1,8 @@
 <script lang="ts">
   import { router, useForm } from "@inertiajs/svelte";
+  import { slide } from "svelte/transition";
   import { Button } from "@/components/ui/button/index.js";
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card/index.js";
   import { Checkbox } from "@/components/ui/checkbox/index.js";
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
@@ -20,6 +22,7 @@
 
   let { storages, providers, onstatus }: Props = $props();
 
+  let isDialogOpen = $state(false);
   let editingId = $state<number | null>(null);
   let deletingId = $state<number | null>(null);
   let keyRows = $state<KeyRow[]>([]);
@@ -59,7 +62,16 @@
     return result;
   }
 
-  function startEdit(storage: BackupStorageItem) {
+  function openCreate() {
+    editingId = null;
+    form.reset();
+    form.active = true;
+    form.clearErrors();
+    keyRows = [];
+    isDialogOpen = true;
+  }
+
+  function openEdit(storage: BackupStorageItem) {
     editingId = storage.id;
     form.clearErrors();
     form.name = storage.name;
@@ -70,9 +82,11 @@
       key,
       value: String(value ?? ""),
     }));
+    isDialogOpen = true;
   }
 
-  function resetForm() {
+  function closeDialog() {
+    isDialogOpen = false;
     editingId = null;
     form.reset();
     form.active = true;
@@ -91,7 +105,7 @@
         if (nextStatus) {
           onstatus?.(nextStatus);
         }
-        resetForm();
+        closeDialog();
       },
     };
 
@@ -113,7 +127,7 @@
           onstatus?.(nextStatus);
         }
         if (editingId === id) {
-          resetForm();
+          closeDialog();
         }
       },
       onFinish: () => {
@@ -123,148 +137,57 @@
   }
 </script>
 
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === "Escape" && isDialogOpen) {
+      closeDialog();
+    }
+  }}
+/>
+
 <div class="space-y-4">
   <div class="rounded-xl border border-line bg-page-elevated p-5 sm:p-6">
-    <div class="flex items-start gap-3">
-      <span
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-page text-accent"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
-          <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
-          <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
-          <line x1="6" x2="6.01" y1="6" y2="6"/>
-          <line x1="6" x2="6.01" y1="18" y2="18"/>
-        </svg>
-      </span>
-      <div class="min-w-0">
-        <h2 class="text-lg font-semibold tracking-tight text-ink">Backup Storage</h2>
-        <p class="mt-1 text-sm leading-6 text-muted">
-          Configure storage destinations and server targets used by backup schedules.
-        </p>
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-start gap-3">
+        <span
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-page text-accent"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+            <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
+            <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
+            <line x1="6" x2="6.01" y1="6" y2="6"/>
+            <line x1="6" x2="6.01" y1="18" y2="18"/>
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <h2 class="text-lg font-semibold tracking-tight text-ink">Backup Storage</h2>
+          <p class="mt-1 text-sm leading-6 text-muted">
+            Configure storage destinations and server targets used by backup schedules.
+          </p>
+        </div>
       </div>
+
+      <Button type="button" onclick={openCreate} class="shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5 size-4">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Storage
+      </Button>
     </div>
   </div>
 
-  <form
-    class="rounded-xl border border-line bg-page-elevated p-5 sm:p-6"
-    onsubmit={handleSubmit}
-    novalidate
-  >
-    <div class="flex items-center justify-between gap-2">
-      <h3 class="text-sm font-semibold text-ink">
-        {editingId !== null ? "Edit Backup Storage" : "Add Backup Storage"}
-      </h3>
-      {#if editingId !== null}
-        <button
-          type="button"
-          onclick={resetForm}
-          class="cursor-pointer text-xs font-medium text-accent hover:underline"
-        >
-          Cancel edit
-        </button>
-      {/if}
-    </div>
-
-    <div class="mt-4 grid gap-4 sm:grid-cols-2">
-      <div class="grid gap-2">
-        <Label for="storage-name">Name</Label>
-        <Input
-          id="storage-name"
-          type="text"
-          placeholder="Primary Storage"
-          bind:value={form.name}
-          oninput={() => {
-            if (editingId === null) {
-              form.slug = slugify(form.name);
-            }
-          }}
-          disabled={form.processing}
-          aria-invalid={Boolean(form.errors.name)}
-        />
-        {#if form.errors.name}
-          <p class="text-xs text-destructive">{form.errors.name}</p>
-        {/if}
-      </div>
-
-      <div class="grid gap-2">
-        <Label for="storage-slug">Slug</Label>
-        <Input
-          id="storage-slug"
-          type="text"
-          placeholder="primary-storage"
-          bind:value={form.slug}
-          disabled={form.processing}
-          aria-invalid={Boolean(form.errors.slug)}
-        />
-        {#if form.errors.slug}
-          <p class="text-xs text-destructive">{form.errors.slug}</p>
-        {/if}
-      </div>
-
-      <div class="grid gap-2">
-        <Label for="storage-provider">Provider</Label>
-        <Select
-          id="storage-provider"
-          bind:value={form.provider_id}
-          disabled={form.processing}
-          aria-invalid={Boolean(form.errors.provider_id)}
-        >
-          <option value="">None (Local / Server)</option>
-          {#each providers as provider (provider.id)}
-            <option value={provider.id}>{provider.name}</option>
-          {/each}
-        </Select>
-        {#if form.errors.provider_id}
-          <p class="text-xs text-destructive">{form.errors.provider_id}</p>
-        {/if}
-      </div>
-
-      <div class="grid gap-2">
-        <Label>Status</Label>
-        <label class="flex h-9 cursor-pointer items-center gap-2.5 rounded-md border border-input bg-page-elevated px-3 text-sm text-ink shadow-xs">
-          <Checkbox bind:checked={form.active} disabled={form.processing} />
-          <span>Active</span>
-        </label>
-      </div>
-    </div>
-
-    <div class="mt-5 border-t border-line pt-4">
-      <div class="flex items-center justify-between gap-2">
-        <Label>Storage Keys</Label>
-        <Button type="button" variant="outline" size="sm" onclick={addKeyRow}>
-          Add key
-        </Button>
-      </div>
-
-      {#if keyRows.length > 0}
-        <div class="mt-3 space-y-2">
-          {#each keyRows as row, index (index)}
-            <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
-              <Input type="text" placeholder="Key" bind:value={row.key} />
-              <Input type="text" placeholder="Value" bind:value={row.value} />
-              <Button type="button" variant="ghost" size="sm" onclick={() => removeKeyRow(index)}>
-                Remove
-              </Button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </div>
-
-    <div class="mt-5 flex">
-      <Button type="submit" disabled={form.processing}>
-        {form.processing
-          ? "Saving…"
-          : editingId !== null
-            ? "Update storage"
-            : "Create storage"}
-      </Button>
-    </div>
-  </form>
-
   <div class="rounded-xl border border-line bg-page-elevated p-5 sm:p-6">
     {#if storages.length === 0}
-      <p class="text-sm text-muted">No backup storages configured yet.</p>
+      <div class="rounded-lg border border-dashed border-line p-8 text-center">
+        <p class="text-sm font-medium text-ink">No backup storages configured yet.</p>
+        <p class="mt-1 text-xs text-muted">Configure a storage destination to start storing backups.</p>
+        <div class="mt-4">
+          <Button type="button" size="sm" onclick={openCreate}>
+            Add Storage
+          </Button>
+        </div>
+      </div>
     {:else}
       <div class="space-y-3">
         {#each storages as storage (storage.id)}
@@ -286,7 +209,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onclick={() => startEdit(storage)}>
+              <Button type="button" variant="outline" size="sm" onclick={() => openEdit(storage)}>
                 Edit
               </Button>
               <Button
@@ -305,3 +228,154 @@
     {/if}
   </div>
 </div>
+
+{#if isDialogOpen}
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="storage-dialog-title"
+    tabindex="-1"
+    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+  >
+    <button
+      type="button"
+      class="fixed inset-0 bg-black/50 backdrop-blur-xs"
+      onclick={closeDialog}
+      aria-label="Close modal"
+      tabindex="-1"
+    ></button>
+
+    <div class="relative z-10 my-8 w-full max-w-2xl">
+      <Card class="shadow-lg max-h-[90vh] flex flex-col">
+        <CardHeader class="shrink-0">
+          <div class="flex items-center justify-between gap-2">
+            <CardTitle id="storage-dialog-title">
+              {editingId !== null ? "Edit Backup Storage" : "Add Backup Storage"}
+            </CardTitle>
+            <button
+              type="button"
+              onclick={closeDialog}
+              class="cursor-pointer rounded-md p-1 text-muted hover:text-ink"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <CardDescription>
+            {editingId !== null
+              ? "Update storage configuration and credentials."
+              : "Configure storage destinations and server targets used by backup schedules."}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent class="overflow-y-auto">
+          <form onsubmit={handleSubmit} novalidate class="space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-2">
+                <Label for="storage-name">Name</Label>
+                <Input
+                  id="storage-name"
+                  type="text"
+                  placeholder="Primary Storage"
+                  bind:value={form.name}
+                  oninput={() => {
+                    if (editingId === null) {
+                      form.slug = slugify(form.name);
+                    }
+                  }}
+                  disabled={form.processing}
+                  aria-invalid={Boolean(form.errors.name)}
+                />
+                {#if form.errors.name}
+                  <p class="text-xs text-destructive">{form.errors.name}</p>
+                {/if}
+              </div>
+
+              <div class="grid gap-2">
+                <Label for="storage-slug">Slug</Label>
+                <Input
+                  id="storage-slug"
+                  type="text"
+                  placeholder="primary-storage"
+                  bind:value={form.slug}
+                  disabled={form.processing}
+                  aria-invalid={Boolean(form.errors.slug)}
+                />
+                {#if form.errors.slug}
+                  <p class="text-xs text-destructive">{form.errors.slug}</p>
+                {/if}
+              </div>
+
+              <div class="grid gap-2">
+                <Label for="storage-provider">Provider</Label>
+                <Select
+                  id="storage-provider"
+                  bind:value={form.provider_id}
+                  disabled={form.processing}
+                  aria-invalid={Boolean(form.errors.provider_id)}
+                  options={[
+                    { value: "", label: "None (Local / Server)" },
+                    ...providers.map((provider) => ({
+                      value: provider.id,
+                      label: provider.name,
+                    })),
+                  ]}
+                />
+                {#if form.errors.provider_id}
+                  <p class="text-xs text-destructive">{form.errors.provider_id}</p>
+                {/if}
+              </div>
+
+              <div class="grid gap-2">
+                <Label>Status</Label>
+                <label class="flex h-9 cursor-pointer items-center gap-2.5 rounded-md border border-input bg-page-elevated px-3 text-sm text-ink shadow-xs transition-colors duration-100 hover:border-accent/40">
+                  <Checkbox bind:checked={form.active} disabled={form.processing} />
+                  <span>Active</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="border-t border-line pt-4">
+              <div class="flex items-center justify-between gap-2">
+                <Label>Storage Keys</Label>
+                <Button type="button" variant="outline" size="sm" onclick={addKeyRow}>
+                  Add key
+                </Button>
+              </div>
+
+              {#if keyRows.length > 0}
+                <div class="mt-3 space-y-2" transition:slide={{ duration: 200 }}>
+                  {#each keyRows as row, index (index)}
+                    <div class="grid grid-cols-[1fr_1fr_auto] gap-2" transition:slide={{ duration: 150 }}>
+                      <Input type="text" placeholder="Key" bind:value={row.key} />
+                      <Input type="text" placeholder="Value" bind:value={row.value} />
+                      <Button type="button" variant="ghost" size="sm" onclick={() => removeKeyRow(index)}>
+                        Remove
+                      </Button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onclick={closeDialog} disabled={form.processing}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.processing}>
+                {form.processing
+                  ? "Saving…"
+                  : editingId !== null
+                    ? "Update storage"
+                    : "Create storage"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+{/if}

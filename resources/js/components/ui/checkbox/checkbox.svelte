@@ -22,7 +22,7 @@
   />
   <span
     aria-hidden="true"
-    class="flex size-4 items-center justify-center rounded-[4px] border border-input bg-page-elevated text-transparent shadow-xs transition-colors peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-foreground peer-focus-visible:border-ring peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/40 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
+    class="flex size-4 items-center justify-center rounded-[4px] border border-input bg-page-elevated text-transparent shadow-xs transition-[border-color,background-color,box-shadow] duration-100 hover:border-accent/60 peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-foreground peer-focus:border-accent peer-focus:ring-[3px] peer-focus:ring-accent/20 peer-focus-visible:border-accent peer-focus-visible:ring-[3px] peer-focus-visible:ring-accent/20 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"

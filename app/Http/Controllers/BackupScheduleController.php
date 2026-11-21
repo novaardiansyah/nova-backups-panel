@@ -26,7 +26,7 @@ class BackupScheduleController extends Controller
 
     public function update(Request $request, BackupSchedule $schedule): RedirectResponse
     {
-        abort_unless($schedule->user_id === $request->user()->id, 403);
+        abort_unless((int) $schedule->user_id === (int) $request->user()->id, 403);
 
         $validated = $this->validateSchedule($request);
         $schedule->update($validated);
@@ -36,7 +36,7 @@ class BackupScheduleController extends Controller
 
     public function destroy(Request $request, BackupSchedule $schedule): RedirectResponse
     {
-        abort_unless($schedule->user_id === $request->user()->id, 403);
+        abort_unless((int) $schedule->user_id === (int) $request->user()->id, 403);
 
         $schedule->delete();
 

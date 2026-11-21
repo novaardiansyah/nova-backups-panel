@@ -1,3 +1,3 @@
-import Select from "./select.svelte";
+import Select, { type SelectOption } from "./select.svelte";
 
-export { Select };
+export { Select, type SelectOption };

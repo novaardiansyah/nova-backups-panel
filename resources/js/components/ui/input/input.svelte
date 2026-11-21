@@ -12,10 +12,10 @@ let {
 <input
   bind:value
   class={cn(
-    "flex h-9 w-full min-w-0 rounded-md border border-input bg-page-elevated px-3 py-1 text-sm text-ink shadow-xs outline-none transition-[color,box-shadow]",
+    "flex h-9 w-full min-w-0 rounded-md border border-input bg-page-elevated px-3 py-1 text-sm text-ink shadow-xs outline-none transition-[border-color,box-shadow] duration-100",
     "placeholder:text-faint selection:bg-accent selection:text-accent-foreground",
     "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-ink",
-    "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40",
+    "hover:border-accent/40 focus:border-accent focus:ring-[3px] focus:ring-accent/20 focus-visible:border-accent focus-visible:ring-[3px] focus-visible:ring-accent/20",
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
     "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
     className,

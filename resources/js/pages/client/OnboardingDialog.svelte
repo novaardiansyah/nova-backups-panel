@@ -89,6 +89,7 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="onboarding-title"
+    tabindex="-1"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
   >
     <div class="w-full max-w-md">

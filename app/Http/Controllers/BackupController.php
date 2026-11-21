@@ -10,7 +10,7 @@ class BackupController extends Controller
 {
     public function destroy(Request $request, Backup $backup): RedirectResponse
     {
-        abort_unless($backup->user_id === $request->user()->id, 403);
+        abort_unless((int) $backup->user_id === (int) $request->user()->id, 403);
 
         $backup->delete();
 

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { router, useForm } from "@inertiajs/svelte";
+  import { slide } from "svelte/transition";
   import { Button } from "@/components/ui/button/index.js";
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card/index.js";
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
   import type { BackupStorageProviderItem } from "@/lib/backup-types.js";
@@ -17,6 +19,7 @@
 
   let { providers, onstatus }: Props = $props();
 
+  let isDialogOpen = $state(false);
   let editingId = $state<number | null>(null);
   let deletingId = $state<number | null>(null);
   let keyRows = $state<KeyRow[]>([]);
@@ -54,7 +57,15 @@
     return result;
   }
 
-  function startEdit(provider: BackupStorageProviderItem) {
+  function openCreate() {
+    editingId = null;
+    form.reset();
+    form.clearErrors();
+    keyRows = [];
+    isDialogOpen = true;
+  }
+
+  function openEdit(provider: BackupStorageProviderItem) {
     editingId = provider.id;
     form.clearErrors();
     form.name = provider.name;
@@ -63,9 +74,11 @@
       key,
       value: String(value ?? ""),
     }));
+    isDialogOpen = true;
   }
 
-  function resetForm() {
+  function closeDialog() {
+    isDialogOpen = false;
     editingId = null;
     form.reset();
     form.clearErrors();
@@ -83,7 +96,7 @@
         if (nextStatus) {
           onstatus?.(nextStatus);
         }
-        resetForm();
+        closeDialog();
       },
     };
 
@@ -105,7 +118,7 @@
           onstatus?.(nextStatus);
         }
         if (editingId === id) {
-          resetForm();
+          closeDialog();
         }
       },
       onFinish: () => {
@@ -115,121 +128,56 @@
   }
 </script>
 
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === "Escape" && isDialogOpen) {
+      closeDialog();
+    }
+  }}
+/>
+
 <div class="space-y-4">
   <div class="rounded-xl border border-line bg-page-elevated p-5 sm:p-6">
-    <div class="flex items-start gap-3">
-      <span
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-page text-accent"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
-          <ellipse cx="12" cy="5" rx="9" ry="3"/>
-          <path d="M3 5v14a9 3 0 0 0 18 0V5"/>
-          <path d="M3 12a9 3 0 0 0 18 0"/>
-        </svg>
-      </span>
-      <div class="min-w-0">
-        <h2 class="text-lg font-semibold tracking-tight text-ink">Backup Storage Providers</h2>
-        <p class="mt-1 text-sm leading-6 text-muted">
-          Define storage provider templates and default configuration keys.
-        </p>
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-start gap-3">
+        <span
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-page text-accent"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M3 5v14a9 3 0 0 0 18 0V5"/>
+            <path d="M3 12a9 3 0 0 0 18 0"/>
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <h2 class="text-lg font-semibold tracking-tight text-ink">Backup Storage Providers</h2>
+          <p class="mt-1 text-sm leading-6 text-muted">
+            Define storage provider templates and default configuration keys.
+          </p>
+        </div>
       </div>
+
+      <Button type="button" onclick={openCreate} class="shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5 size-4">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Provider
+      </Button>
     </div>
   </div>
 
-  <form
-    class="rounded-xl border border-line bg-page-elevated p-5 sm:p-6"
-    onsubmit={handleSubmit}
-    novalidate
-  >
-    <div class="flex items-center justify-between gap-2">
-      <h3 class="text-sm font-semibold text-ink">
-        {editingId !== null ? "Edit Storage Provider" : "Add Storage Provider"}
-      </h3>
-      {#if editingId !== null}
-        <button
-          type="button"
-          onclick={resetForm}
-          class="cursor-pointer text-xs font-medium text-accent hover:underline"
-        >
-          Cancel edit
-        </button>
-      {/if}
-    </div>
-
-    <div class="mt-4 grid gap-4 sm:grid-cols-2">
-      <div class="grid gap-2">
-        <Label for="provider-name">Name</Label>
-        <Input
-          id="provider-name"
-          type="text"
-          placeholder="Cloud Storage"
-          bind:value={form.name}
-          oninput={() => {
-            if (editingId === null) {
-              form.slug = slugify(form.name);
-            }
-          }}
-          disabled={form.processing}
-          aria-invalid={Boolean(form.errors.name)}
-        />
-        {#if form.errors.name}
-          <p class="text-xs text-destructive">{form.errors.name}</p>
-        {/if}
-      </div>
-
-      <div class="grid gap-2">
-        <Label for="provider-slug">Slug</Label>
-        <Input
-          id="provider-slug"
-          type="text"
-          placeholder="cloud-storage"
-          bind:value={form.slug}
-          disabled={form.processing}
-          aria-invalid={Boolean(form.errors.slug)}
-        />
-        {#if form.errors.slug}
-          <p class="text-xs text-destructive">{form.errors.slug}</p>
-        {/if}
-      </div>
-    </div>
-
-    <div class="mt-5 border-t border-line pt-4">
-      <div class="flex items-center justify-between gap-2">
-        <Label>Provider Keys</Label>
-        <Button type="button" variant="outline" size="sm" onclick={addKeyRow}>
-          Add key
-        </Button>
-      </div>
-
-      {#if keyRows.length > 0}
-        <div class="mt-3 space-y-2">
-          {#each keyRows as row, index (index)}
-            <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
-              <Input type="text" placeholder="Key" bind:value={row.key} />
-              <Input type="text" placeholder="Value" bind:value={row.value} />
-              <Button type="button" variant="ghost" size="sm" onclick={() => removeKeyRow(index)}>
-                Remove
-              </Button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </div>
-
-    <div class="mt-5 flex">
-      <Button type="submit" disabled={form.processing}>
-        {form.processing
-          ? "Saving…"
-          : editingId !== null
-            ? "Update provider"
-            : "Create provider"}
-      </Button>
-    </div>
-  </form>
-
   <div class="rounded-xl border border-line bg-page-elevated p-5 sm:p-6">
     {#if providers.length === 0}
-      <p class="text-sm text-muted">No storage providers configured yet.</p>
+      <div class="rounded-lg border border-dashed border-line p-8 text-center">
+        <p class="text-sm font-medium text-ink">No storage providers configured yet.</p>
+        <p class="mt-1 text-xs text-muted">Create a provider template to get started.</p>
+        <div class="mt-4">
+          <Button type="button" size="sm" onclick={openCreate}>
+            Add Provider
+          </Button>
+        </div>
+      </div>
     {:else}
       <div class="space-y-3">
         {#each providers as provider (provider.id)}
@@ -242,7 +190,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onclick={() => startEdit(provider)}>
+              <Button type="button" variant="outline" size="sm" onclick={() => openEdit(provider)}>
                 Edit
               </Button>
               <Button
@@ -261,3 +209,126 @@
     {/if}
   </div>
 </div>
+
+{#if isDialogOpen}
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="provider-dialog-title"
+    tabindex="-1"
+    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+  >
+    <button
+      type="button"
+      class="fixed inset-0 bg-black/50 backdrop-blur-xs"
+      onclick={closeDialog}
+      aria-label="Close modal"
+      tabindex="-1"
+    ></button>
+
+    <div class="relative z-10 my-8 w-full max-w-2xl">
+      <Card class="shadow-lg max-h-[90vh] flex flex-col">
+        <CardHeader class="shrink-0">
+          <div class="flex items-center justify-between gap-2">
+            <CardTitle id="provider-dialog-title">
+              {editingId !== null ? "Edit Storage Provider" : "Add Storage Provider"}
+            </CardTitle>
+            <button
+              type="button"
+              onclick={closeDialog}
+              class="cursor-pointer rounded-md p-1 text-muted hover:text-ink"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <CardDescription>
+            {editingId !== null
+              ? "Update provider details and default configuration keys."
+              : "Define a storage provider template and default configuration keys."}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent class="overflow-y-auto">
+          <form onsubmit={handleSubmit} novalidate class="space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-2">
+                <Label for="provider-name">Name</Label>
+                <Input
+                  id="provider-name"
+                  type="text"
+                  placeholder="Cloud Storage"
+                  bind:value={form.name}
+                  oninput={() => {
+                    if (editingId === null) {
+                      form.slug = slugify(form.name);
+                    }
+                  }}
+                  disabled={form.processing}
+                  aria-invalid={Boolean(form.errors.name)}
+                />
+                {#if form.errors.name}
+                  <p class="text-xs text-destructive">{form.errors.name}</p>
+                {/if}
+              </div>
+
+              <div class="grid gap-2">
+                <Label for="provider-slug">Slug</Label>
+                <Input
+                  id="provider-slug"
+                  type="text"
+                  placeholder="cloud-storage"
+                  bind:value={form.slug}
+                  disabled={form.processing}
+                  aria-invalid={Boolean(form.errors.slug)}
+                />
+                {#if form.errors.slug}
+                  <p class="text-xs text-destructive">{form.errors.slug}</p>
+                {/if}
+              </div>
+            </div>
+
+            <div class="border-t border-line pt-4">
+              <div class="flex items-center justify-between gap-2">
+                <Label>Provider Keys</Label>
+                <Button type="button" variant="outline" size="sm" onclick={addKeyRow}>
+                  Add key
+                </Button>
+              </div>
+
+              {#if keyRows.length > 0}
+                <div class="mt-3 space-y-2" transition:slide={{ duration: 200 }}>
+                  {#each keyRows as row, index (index)}
+                    <div class="grid grid-cols-[1fr_1fr_auto] gap-2" transition:slide={{ duration: 150 }}>
+                      <Input type="text" placeholder="Key" bind:value={row.key} />
+                      <Input type="text" placeholder="Value" bind:value={row.value} />
+                      <Button type="button" variant="ghost" size="sm" onclick={() => removeKeyRow(index)}>
+                        Remove
+                      </Button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onclick={closeDialog} disabled={form.processing}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.processing}>
+                {form.processing
+                  ? "Saving…"
+                  : editingId !== null
+                    ? "Update provider"
+                    : "Create provider"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+{/if}

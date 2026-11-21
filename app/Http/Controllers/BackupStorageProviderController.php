@@ -45,8 +45,8 @@ class BackupStorageProviderController extends Controller
 
     public function update(Request $request, BackupStorageProvider $provider): RedirectResponse
     {
-        $userId = $request->user()->id;
-        abort_unless($provider->user_id === $userId, 403);
+        $userId = (int) $request->user()->id;
+        abort_unless((int) $provider->user_id === $userId, 403);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -74,7 +74,7 @@ class BackupStorageProviderController extends Controller
 
     public function destroy(Request $request, BackupStorageProvider $provider): RedirectResponse
     {
-        abort_unless($provider->user_id === $request->user()->id, 403);
+        abort_unless((int) $provider->user_id === (int) $request->user()->id, 403);
 
         $provider->delete();
 
