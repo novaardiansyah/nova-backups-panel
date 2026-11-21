@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { router, useForm } from "@inertiajs/svelte";
   import { slide } from "svelte/transition";
   import { Button } from "@/components/ui/button/index.js";
@@ -8,6 +9,7 @@
   import { Label } from "@/components/ui/label/index.js";
   import { Select } from "@/components/ui/select/index.js";
   import type { BackupStorageItem, BackupStorageProviderItem } from "@/lib/backup-types.js";
+  import { restoreDialogAction, setActionParams } from "@/lib/url-state.js";
 
   interface KeyRow {
     key: string;
@@ -62,6 +64,13 @@
     return result;
   }
 
+  onMount(() => {
+    restoreDialogAction(storages, {
+      onCreate: openCreate,
+      onEdit: openEdit,
+    });
+  });
+
   function openCreate() {
     editingId = null;
     form.reset();
@@ -69,6 +78,7 @@
     form.clearErrors();
     keyRows = [];
     isDialogOpen = true;
+    setActionParams("create");
   }
 
   function openEdit(storage: BackupStorageItem) {
@@ -83,6 +93,7 @@
       value: String(value ?? ""),
     }));
     isDialogOpen = true;
+    setActionParams("edit", storage.id);
   }
 
   function closeDialog() {
@@ -92,6 +103,7 @@
     form.active = true;
     form.clearErrors();
     keyRows = [];
+    setActionParams(null);
   }
 
   function handleSubmit(event: SubmitEvent) {

@@ -10,6 +10,7 @@
   } from "@/lib/backup-types.js";
   import { getClientTranslations } from "@/lib/i18n.js";
   import { applyTheme } from "@/lib/theme.js";
+  import { getQueryParams, updateQueryParams } from "@/lib/url-state.js";
   import BackupSchedulesPanel from "./BackupSchedulesPanel.svelte";
   import BackupStorageProvidersPanel from "./BackupStorageProvidersPanel.svelte";
   import BackupStoragesPanel from "./BackupStoragesPanel.svelte";
@@ -73,12 +74,48 @@
       .join("") || "U",
   );
 
-  let active = $state<ClientSection>("profile");
+  const tabToSection: Record<string, ClientSection> = {
+    profile: "profile",
+    backups: "backups",
+    "backup-schedules": "schedules",
+    "backup-storages": "storages",
+    "backup-providers": "providers",
+    preferences: "preferences",
+  };
+
+  const sectionToTab: Record<ClientSection, string> = {
+    profile: "profile",
+    backups: "backups",
+    schedules: "backup-schedules",
+    storages: "backup-storages",
+    providers: "backup-providers",
+    preferences: "preferences",
+  };
+
+  function getInitialSection(): ClientSection {
+    const tab = getQueryParams().get("tab");
+    if (tab && tab in tabToSection) {
+      return tabToSection[tab];
+    }
+    return "profile";
+  }
+
+  let active = $state<ClientSection>(getInitialSection());
   let signingOut = $state(false);
   let onboardingOpen = $state(false);
   let toastOpen = $state(false);
   let toastMessage = $state("");
   let homeToastOpen = $state(false);
+
+  function selectSection(section: ClientSection) {
+    if (active === section) return;
+    active = section;
+    updateQueryParams({
+      tab: sectionToTab[section],
+      action: null,
+      id: null,
+    });
+  }
 
   $effect(() => {
     applyTheme(user.theme);
@@ -157,7 +194,7 @@
                   ? 'bg-surface-muted text-ink'
                   : 'text-muted hover:bg-surface hover:text-ink'}"
                 aria-current={active === item.id ? "page" : undefined}
-                onclick={() => (active = item.id)}
+                onclick={() => selectSection(item.id)}
               >
                 {#if item.id === "backups"}
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">

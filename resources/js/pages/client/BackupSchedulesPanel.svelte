@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { router, useForm } from "@inertiajs/svelte";
   import { slide } from "svelte/transition";
   import { Button } from "@/components/ui/button/index.js";
@@ -8,6 +9,7 @@
   import { Label } from "@/components/ui/label/index.js";
   import { Select } from "@/components/ui/select/index.js";
   import type { BackupScheduleItem, BackupStorageItem } from "@/lib/backup-types.js";
+  import { restoreDialogAction, setActionParams } from "@/lib/url-state.js";
 
   interface Props {
     schedules: BackupScheduleItem[];
@@ -42,6 +44,13 @@
     is_enabled: true,
   });
 
+  onMount(() => {
+    restoreDialogAction(schedules, {
+      onCreate: openCreate,
+      onEdit: openEdit,
+    });
+  });
+
   function openCreate() {
     editingId = null;
     form.reset();
@@ -55,6 +64,7 @@
     form.is_enabled = true;
     form.clearErrors();
     isDialogOpen = true;
+    setActionParams("create");
   }
 
   function openEdit(schedule: BackupScheduleItem) {
@@ -79,6 +89,7 @@
     form.max_count_backup = schedule.maxCountBackup;
     form.is_enabled = schedule.isEnabled;
     isDialogOpen = true;
+    setActionParams("edit", schedule.id);
   }
 
   function closeDialog() {
@@ -94,6 +105,7 @@
     form.max_count_backup = 3;
     form.is_enabled = true;
     form.clearErrors();
+    setActionParams(null);
   }
 
   function handleSubmit(event: SubmitEvent) {

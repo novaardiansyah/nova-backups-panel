@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { router, useForm } from "@inertiajs/svelte";
   import { fly, slide } from "svelte/transition";
   import { Button } from "@/components/ui/button/index.js";
@@ -6,6 +7,7 @@
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
   import type { BackupStorageProviderItem } from "@/lib/backup-types.js";
+  import { restoreDialogAction, setActionParams } from "@/lib/url-state.js";
 
   interface KeyRow {
     key: string;
@@ -61,12 +63,23 @@
     return result;
   }
 
+  onMount(() => {
+    restoreDialogAction(providers, {
+      onCreate: openCreate,
+      onEdit: openEdit,
+      onDelete: (provider) => {
+        confirmDeleteProvider = provider;
+      },
+    });
+  });
+
   function openCreate() {
     editingId = null;
     form.reset();
     form.clearErrors();
     keyRows = [];
     isDialogOpen = true;
+    setActionParams("create");
   }
 
   function openEdit(provider: BackupStorageProviderItem) {
@@ -79,6 +92,7 @@
       value: String(value ?? ""),
     }));
     isDialogOpen = true;
+    setActionParams("edit", provider.id);
   }
 
   function closeDialog() {
@@ -87,6 +101,7 @@
     form.reset();
     form.clearErrors();
     keyRows = [];
+    setActionParams(null);
   }
 
   function handleSubmit(event: SubmitEvent) {
@@ -128,6 +143,7 @@
       onFinish: () => {
         deletingId = null;
         confirmDeleteProvider = null;
+        setActionParams(null);
       },
     });
   }
@@ -174,11 +190,13 @@
     const provider = menuProvider;
     closeMenu();
     confirmDeleteProvider = provider;
+    setActionParams("delete", provider.id);
   }
 
   function closeConfirmDelete() {
     if (deletingId !== null) return;
     confirmDeleteProvider = null;
+    setActionParams(null);
   }
 
   function confirmDelete() {
@@ -317,7 +335,7 @@
       tabindex="-1"
     ></button>
 
-    <div class="relative z-10 my-8 w-full max-w-2xl">
+    <div class="relative z-10 my-8 w-full max-w-4xl">
       <Card class="shadow-lg max-h-[90vh] flex flex-col">
         <CardHeader class="shrink-0">
           <div class="flex items-center justify-between gap-2">
@@ -393,7 +411,7 @@
               {#if keyRows.length > 0}
                 <div class="mt-3 space-y-2" transition:slide={{ duration: 200 }}>
                   {#each keyRows as row, index (index)}
-                    <div class="grid grid-cols-[1fr_1fr_auto] gap-2" transition:slide={{ duration: 150 }}>
+                    <div class="grid grid-cols-[2fr_3fr_auto] gap-2" transition:slide={{ duration: 150 }}>
                       <Input type="text" placeholder="Key" bind:value={row.key} />
                       <Input type="text" placeholder="Value" bind:value={row.value} />
                       <Button
