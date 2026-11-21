@@ -43,8 +43,52 @@ class AuthFlowTest extends TestCase
             'otp' => $otp,
         ]);
 
-        $verifyResponse->assertRedirect('/');
+        $verifyResponse->assertRedirect(route('client.area'));
+        $verifyResponse->assertSessionHas('show_onboarding', true);
+        $this->assertAuthenticatedAs($user);
         $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_authenticated_verified_user_can_access_client_area_and_complete_or_skip_onboarding(): void
+    {
+        $user = User::create([
+            'name' => 'nova',
+            'email' => 'nova@example.com',
+            'password' => null,
+            'email_verified_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['show_onboarding' => true])
+            ->get(route('client.area'))
+            ->assertOk();
+
+        $onboardingResponse = $this->actingAs($user)->post(route('onboarding.store'), [
+            'name' => 'Nova Ardiansyah',
+            'password' => 'secret123',
+            'password_confirmation' => 'secret123',
+        ]);
+
+        $onboardingResponse->assertRedirect(route('client.area'));
+        $onboardingResponse->assertSessionHas('onboarding_completed', true);
+        $onboardingResponse->assertSessionMissing('show_onboarding');
+
+        $freshUser = $user->fresh();
+        $this->assertSame('Nova Ardiansyah', $freshUser->name);
+        $this->assertTrue($freshUser->hasPassword());
+
+        $skipResponse = $this->actingAs($freshUser)
+            ->withSession(['show_onboarding' => true])
+            ->post(route('onboarding.skip'));
+
+        $skipResponse->assertRedirect(route('client.area'));
+        $skipResponse->assertSessionMissing('show_onboarding');
+
+        $profileResponse = $this->actingAs($freshUser)->put(route('client.profile.update'), [
+            'name' => 'Nova Updated',
+        ]);
+        $profileResponse->assertRedirect();
+        $this->assertSame('Nova Updated', $freshUser->fresh()->name);
     }
 
     public function test_identify_login_shows_password_step_when_user_has_password(): void
@@ -98,7 +142,7 @@ class AuthFlowTest extends TestCase
             'remember' => true,
         ]);
 
-        $loginResponse->assertRedirect('/');
+        $loginResponse->assertRedirect(route('client.area'));
         $this->assertAuthenticatedAs($user);
         $this->assertNotNull($user->fresh()->email_verified_at);
     }
@@ -136,7 +180,7 @@ class AuthFlowTest extends TestCase
             'email' => $user->email,
             'otp' => $otp,
         ]);
-        $validResponse->assertRedirect('/');
+        $validResponse->assertRedirect(route('client.area'));
         $this->assertAuthenticatedAs($user);
     }
 }

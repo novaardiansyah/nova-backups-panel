@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClientAreaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('home');
@@ -20,5 +21,11 @@ Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->mid
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('guest')->name('password.update');
 Route::post('/reset-password/resend', [AuthController::class, 'resendResetOtp'])->middleware('guest')->name('password.resend');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('/client', [ClientAreaController::class, 'index'])->name('client.area');
+    Route::put('/client/profile', [ClientAreaController::class, 'updateProfile'])->name('client.profile.update');
+    Route::post('/onboarding', [ClientAreaController::class, 'completeOnboarding'])->name('onboarding.store');
+    Route::post('/onboarding/skip', [ClientAreaController::class, 'skipOnboarding'])->name('onboarding.skip');
+});
 Route::get('/terms', [AuthController::class, 'showTerms'])->name('terms');
 Route::get('/privacy', [AuthController::class, 'showPrivacy'])->name('privacy');

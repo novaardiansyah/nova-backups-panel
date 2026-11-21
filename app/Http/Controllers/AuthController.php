@@ -20,8 +20,17 @@ use Inertia\Response;
 
 class AuthController extends Controller
 {
-    public function showLogin(): Response
+    public function showLogin(Request $request): Response|RedirectResponse
     {
+        $user = $request->user();
+        if ($user instanceof User) {
+            if (! $user->hasVerifiedEmail()) {
+                return redirect()->route('verification.notice');
+            }
+
+            return redirect()->route('client.area');
+        }
+
         $loginEmail = session('login_email');
         $cooldownRemaining = is_string($loginEmail) && $loginEmail !== ''
             ? (OtpRateLimiter::check('login-otp', strtolower(trim($loginEmail))) ?? 0)
@@ -155,7 +164,7 @@ class AuthController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended('/');
+        return redirect()->intended(route('client.area'));
     }
 
     public function login(Request $request): RedirectResponse
@@ -186,7 +195,7 @@ class AuthController extends Controller
             );
         }
 
-        return redirect()->intended('/');
+        return redirect()->intended(route('client.area'));
     }
 
     public function showRegister(): Response
@@ -269,7 +278,11 @@ class AuthController extends Controller
         $user->markEmailAsVerified();
         event(new Verified($user));
 
-        return redirect('/')->with('status', 'Email verified successfully.');
+        Auth::login($user, true);
+        $request->session()->regenerate();
+        $request->session()->put('show_onboarding', true);
+
+        return redirect()->route('client.area')->with('status', 'Email verified successfully.');
     }
 
     public function resendVerificationEmail(Request $request): RedirectResponse
