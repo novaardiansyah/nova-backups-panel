@@ -6,6 +6,7 @@
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
   import { PasswordInput } from "@/components/ui/password-input/index.js";
+  import { Toast } from "@/components/ui/toast/index.js";
 
   interface Props {
     status?: string | null;
@@ -13,7 +14,7 @@
 
   let { status = null }: Props = $props();
 
-  let notice = $state<string | null>(null);
+  let showGoogleToast = $state(false);
 
   const form = useForm({
     email: "",
@@ -23,14 +24,13 @@
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    notice = null;
     form.post("/login", {
       onFinish: () => form.reset("password"),
     });
   }
 
   function handleGoogle() {
-    notice = "Google sign-in is not connected to a backend yet.";
+    showGoogleToast = true;
   }
 </script>
 
@@ -38,7 +38,7 @@
   title="Welcome back"
   description="Sign in to manage your backup jobs."
 >
-  <form class="grid gap-5" onsubmit={handleSubmit}>
+  <form class="grid gap-5" onsubmit={handleSubmit} novalidate>
     <div class="grid gap-2">
       <Label for="email">Email</Label>
       <Input
@@ -47,7 +47,7 @@
         placeholder="you@example.com"
         autocomplete="email"
         bind:value={form.email}
-        required
+        aria-invalid={Boolean(form.errors.email)}
       />
       {#if form.errors.email}
         <p class="text-xs text-destructive">{form.errors.email}</p>
@@ -69,7 +69,7 @@
         placeholder="Enter your password"
         autocomplete="current-password"
         bind:value={form.password}
-        required
+        aria-invalid={Boolean(form.errors.password)}
       />
       {#if form.errors.password}
         <p class="text-xs text-destructive">{form.errors.password}</p>
@@ -91,12 +91,6 @@
       </p>
     {/if}
 
-    {#if notice}
-      <p class="rounded-md bg-accent-soft px-3 py-2 text-sm text-accent">
-        {notice}
-      </p>
-    {/if}
-
     <Button type="submit" class="w-full" disabled={form.processing}>
       {form.processing ? "Signing in…" : "Sign in"}
     </Button>
@@ -115,3 +109,10 @@
     </p>
   </form>
 </AuthShell>
+
+<Toast
+  open={showGoogleToast}
+  title="Feature in development"
+  description="Google sign-in is still under development and not available yet. Please sign in using the manual email and password form."
+  onclose={() => (showGoogleToast = false)}
+/>

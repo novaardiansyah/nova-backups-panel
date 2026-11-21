@@ -3,11 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\OtpRateLimiter;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,6 +42,19 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        $user = $request->user();
+        if ($user instanceof User && ! $user->hasVerifiedEmail()) {
+            $emailKey = strtolower(trim($user->email));
+            if (OtpRateLimiter::check('register-verification', $emailKey) === null) {
+                $user->sendEmailVerificationNotification();
+            }
+
+            return redirect()->route('verification.notice')->with(
+                'status',
+                'Please verify your email address with the 6-digit code sent to your email.',
+            );
+        }
+
         return redirect()->intended('/');
     }
 
@@ -51,17 +70,88 @@ class AuthController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'agree' => ['accepted'],
+        ], [
+            'agree.accepted' => 'Please accept the Terms of Service and Privacy Policy to continue.',
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => strtolower(trim($validated['email'])),
             'password' => Hash::make($validated['password']),
         ]);
 
         Auth::login($user);
+        $user->sendEmailVerificationNotification();
 
-        return redirect()->intended('/');
+        return redirect()->route('verification.notice')->with(
+            'status',
+            'A 6-digit verification code has been sent to your email.',
+        );
+    }
+
+    public function showVerifyEmail(Request $request): Response|RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user instanceof User || $user->hasVerifiedEmail()) {
+            return redirect('/');
+        }
+
+        return Inertia::render('VerifyEmail', [
+            'email' => $user->email,
+            'status' => session('status'),
+        ]);
+    }
+
+    public function verifyEmail(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user instanceof User || $user->hasVerifiedEmail()) {
+            return redirect('/');
+        }
+
+        $validated = $request->validate([
+            'otp' => ['required', 'digits:6'],
+        ]);
+
+        $inputOtp = trim($validated['otp']);
+        $cachedOtp = Cache::get('auth:otp:register:' . $user->id);
+
+        if (! is_string($cachedOtp) || $cachedOtp === '' || ! hash_equals($cachedOtp, $inputOtp)) {
+            throw ValidationException::withMessages([
+                'otp' => 'Invalid or expired verification code.',
+            ]);
+        }
+
+        $emailKey = strtolower(trim($user->email));
+        Cache::forget('auth:otp:register:' . $user->id);
+        Cache::forget('auth:otp:register:lock:' . $user->id);
+        OtpRateLimiter::clear('register-verification', $emailKey);
+
+        $user->markEmailAsVerified();
+        event(new Verified($user));
+
+        return redirect('/')->with('status', 'Email verified successfully.');
+    }
+
+    public function resendVerificationEmail(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user instanceof User || $user->hasVerifiedEmail()) {
+            return redirect('/');
+        }
+
+        $emailKey = strtolower(trim($user->email));
+        $remaining = OtpRateLimiter::check('register-verification', $emailKey);
+        if ($remaining !== null) {
+            throw ValidationException::withMessages([
+                'otp' => 'Please wait ' . OtpRateLimiter::formatRemaining($remaining) . ' before requesting a new code.',
+            ]);
+        }
+
+        Cache::forget('auth:otp:register:lock:' . $user->id);
+        $user->sendEmailVerificationNotification();
+
+        return back()->with('status', 'A new verification code has been sent to your email.');
     }
 
     public function showForgotPassword(): Response
@@ -73,13 +163,165 @@ class AuthController extends Controller
 
     public function sendResetLink(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'email' => ['required', 'email'],
         ]);
 
-        Password::sendResetLink($request->only('email'));
+        $email = strtolower(trim($validated['email']));
+        $remaining = OtpRateLimiter::check('password-reset', $email);
+        if ($remaining !== null) {
+            throw ValidationException::withMessages([
+                'email' => 'Please wait ' . OtpRateLimiter::formatRemaining($remaining) . ' before requesting a new code.',
+            ]);
+        }
 
-        return back()->with('status', 'If an account exists for that email, a password reset link has been sent.');
+        $generatedToken = null;
+        $status = Password::broker()->sendResetLink(
+            ['email' => $email],
+            function (CanResetPassword $user, string $token) use (&$generatedToken): void {
+                $generatedToken = $token;
+                $user->sendPasswordResetNotification($token);
+            },
+        );
+
+        if ($status !== Password::RESET_LINK_SENT || $generatedToken === null) {
+            throw ValidationException::withMessages([
+                'email' => __($status),
+            ]);
+        }
+
+        $request->session()->put('password_reset', [
+            'email' => $email,
+            'token' => $generatedToken,
+            'expires_at' => now()->addMinutes(10)->timestamp,
+        ]);
+
+        $cooldown = OtpRateLimiter::hit('password-reset', $email);
+
+        return redirect()->route('password.reset')->with(
+            'status',
+            'Verification code sent to your email. You can request another code in ' . OtpRateLimiter::formatRemaining($cooldown) . '.',
+        );
+    }
+
+    public function showResetPassword(Request $request): Response|RedirectResponse
+    {
+        $resetSession = $request->session()->get('password_reset');
+        if (! is_array($resetSession) || ! $this->isValidResetSession($resetSession)) {
+            $request->session()->forget('password_reset');
+
+            return redirect()->route('password.request')->with(
+                'status',
+                'Invalid or expired password reset session. Please request a new code.',
+            );
+        }
+
+        return Inertia::render('ResetPassword', [
+            'email' => $resetSession['email'],
+            'status' => session('status'),
+        ]);
+    }
+
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $resetSession = $request->session()->get('password_reset');
+        if (! is_array($resetSession) || ! $this->isValidResetSession($resetSession)) {
+            $request->session()->forget('password_reset');
+
+            return redirect()->route('password.request')->with(
+                'status',
+                'Invalid or expired password reset session. Please request a new code.',
+            );
+        }
+
+        $validated = $request->validate([
+            'otp' => ['required', 'digits:6'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $email = strtolower(trim($resetSession['email']));
+        $cachedData = Cache::get('auth:otp:reset:' . $email);
+        $storedOtp = is_array($cachedData) ? ($cachedData['otp'] ?? null) : null;
+        $inputOtp = trim($validated['otp']);
+
+        if (! is_string($storedOtp) || $storedOtp === '' || ! hash_equals($storedOtp, $inputOtp)) {
+            throw ValidationException::withMessages([
+                'otp' => 'Invalid or expired OTP code.',
+            ]);
+        }
+
+        $status = Password::broker()->reset(
+            [
+                'email' => $email,
+                'password' => $validated['password'],
+                'password_confirmation' => $request->input('password_confirmation'),
+                'token' => $resetSession['token'],
+            ],
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            },
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'otp' => __($status),
+            ]);
+        }
+
+        Cache::forget('auth:otp:reset:' . $email);
+        OtpRateLimiter::clear('password-reset', $email);
+        $request->session()->forget('password_reset');
+
+        return redirect()->route('login')->with(
+            'status',
+            'Your password has been reset. Please sign in with your new password.',
+        );
+    }
+
+    public function resendResetOtp(Request $request): RedirectResponse
+    {
+        $resetSession = $request->session()->get('password_reset');
+        if (! is_array($resetSession) || ! $this->isValidResetSession($resetSession)) {
+            $request->session()->forget('password_reset');
+
+            return redirect()->route('password.request')->with(
+                'status',
+                'Password reset session expired or invalid. Please request a new code.',
+            );
+        }
+
+        $email = strtolower(trim($resetSession['email']));
+        $remaining = OtpRateLimiter::check('password-reset', $email);
+        if ($remaining !== null) {
+            throw ValidationException::withMessages([
+                'otp' => 'Please wait ' . OtpRateLimiter::formatRemaining($remaining) . ' before requesting a new code.',
+            ]);
+        }
+
+        $cooldown = OtpRateLimiter::hit('password-reset', $email);
+        $broker = Password::broker();
+        $user = $broker->getUser(['email' => $email]);
+
+        if ($user instanceof CanResetPassword) {
+            $token = $broker->createToken($user);
+            $user->sendPasswordResetNotification($token);
+
+            $request->session()->put('password_reset', [
+                'email' => $email,
+                'token' => $token,
+                'expires_at' => now()->addMinutes(10)->timestamp,
+            ]);
+        }
+
+        return back()->with(
+            'status',
+            'A new verification code has been sent. Please wait ' . OtpRateLimiter::formatRemaining($cooldown) . '.',
+        );
     }
 
     public function logout(Request $request): RedirectResponse
@@ -100,5 +342,25 @@ class AuthController extends Controller
     public function showPrivacy(): Response
     {
         return Inertia::render('Privacy');
+    }
+
+    private function isValidResetSession(array $resetSession): bool
+    {
+        $email = is_string($resetSession['email'] ?? null) ? strtolower(trim($resetSession['email'])) : '';
+        $token = is_string($resetSession['token'] ?? null) ? $resetSession['token'] : '';
+        $expiresAt = is_int($resetSession['expires_at'] ?? null) ? $resetSession['expires_at'] : 0;
+
+        if ($email === '' || $token === '' || $expiresAt < now()->timestamp) {
+            return false;
+        }
+
+        $broker = Password::broker();
+        $user = $broker->getUser(['email' => $email]);
+
+        if (! $user instanceof CanResetPassword) {
+            return false;
+        }
+
+        return $broker->tokenExists($user, $token);
     }
 }

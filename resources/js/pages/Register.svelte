@@ -6,9 +6,9 @@
   import { Input } from "@/components/ui/input/index.js";
   import { Label } from "@/components/ui/label/index.js";
   import { PasswordInput } from "@/components/ui/password-input/index.js";
+  import { Toast } from "@/components/ui/toast/index.js";
 
-  let clientError = $state<string | null>(null);
-  let notice = $state<string | null>(null);
+  let showGoogleToast = $state(false);
 
   const form = useForm({
     name: "",
@@ -18,36 +18,20 @@
     agree: false,
   });
 
-  let passwordsMismatch = $derived(
-    form.password_confirmation.length > 0 && form.password !== form.password_confirmation,
-  );
-
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    clientError = null;
-    notice = null;
-
-    if (form.password !== form.password_confirmation) {
-      clientError = "Passwords do not match.";
-      return;
-    }
-    if (!form.agree) {
-      clientError = "Please accept the terms and privacy policy to continue.";
-      return;
-    }
-
     form.post("/register", {
       onFinish: () => form.reset("password", "password_confirmation"),
     });
   }
 
   function handleGoogle() {
-    notice = "Google sign-up is not connected to a backend yet.";
+    showGoogleToast = true;
   }
 </script>
 
 <AuthShell title="Create your account" description="Start protecting your data with scheduled backups.">
-  <form class="grid gap-5" onsubmit={handleSubmit}>
+  <form class="grid gap-5" onsubmit={handleSubmit} novalidate>
     <div class="grid gap-2">
       <Label for="full-name">Full name</Label>
       <Input
@@ -56,7 +40,7 @@
         placeholder="Jane Doe"
         autocomplete="name"
         bind:value={form.name}
-        required
+        aria-invalid={Boolean(form.errors.name)}
       />
       {#if form.errors.name}
         <p class="text-xs text-destructive">{form.errors.name}</p>
@@ -71,7 +55,7 @@
         placeholder="you@example.com"
         autocomplete="email"
         bind:value={form.email}
-        required
+        aria-invalid={Boolean(form.errors.email)}
       />
       {#if form.errors.email}
         <p class="text-xs text-destructive">{form.errors.email}</p>
@@ -85,8 +69,7 @@
         placeholder="Create a strong password"
         autocomplete="new-password"
         bind:value={form.password}
-        aria-invalid={passwordsMismatch}
-        required
+        aria-invalid={Boolean(form.errors.password)}
       />
       {#if form.errors.password}
         <p class="text-xs text-destructive">{form.errors.password}</p>
@@ -100,43 +83,37 @@
         placeholder="Repeat your password"
         autocomplete="new-password"
         bind:value={form.password_confirmation}
-        aria-invalid={passwordsMismatch}
-        required
+        aria-invalid={Boolean(form.errors.password_confirmation)}
       />
-      {#if passwordsMismatch}
-        <p class="text-xs text-destructive">Passwords do not match.</p>
+      {#if form.errors.password_confirmation}
+        <p class="text-xs text-destructive">{form.errors.password_confirmation}</p>
       {/if}
     </div>
 
-    <label class="flex items-start gap-2 text-sm text-muted">
-      <input
-        type="checkbox"
-        bind:checked={form.agree}
-        class="mt-0.5 size-4 rounded border border-line-strong accent-[var(--accent)]"
-      />
-      <span>
-        I agree to the
-        <Link href="/terms" class="cursor-pointer font-medium text-accent hover:underline">
-          Terms of Service
-        </Link>
-        and
-        <Link href="/privacy" class="cursor-pointer font-medium text-accent hover:underline">
-          Privacy Policy
-        </Link>.
-      </span>
-    </label>
-    {#if form.errors.agree}
-      <p class="text-xs text-destructive">{form.errors.agree}</p>
-    {/if}
+    <div class="grid gap-2">
+      <label class="flex items-start gap-2 text-sm text-muted">
+        <input
+          type="checkbox"
+          bind:checked={form.agree}
+          class="mt-0.5 size-4 rounded border border-line-strong accent-[var(--accent)]"
+        />
+        <span>
+          I agree to the
+          <Link href="/terms" class="cursor-pointer font-medium text-accent hover:underline">
+            Terms of Service
+          </Link>
+          and
+          <Link href="/privacy" class="cursor-pointer font-medium text-accent hover:underline">
+            Privacy Policy
+          </Link>.
+        </span>
+      </label>
+      {#if form.errors.agree}
+        <p class="text-xs text-destructive">{form.errors.agree}</p>
+      {/if}
+    </div>
 
-    {#if clientError}
-      <p class="rounded-md bg-danger-soft px-3 py-2 text-sm text-destructive">{clientError}</p>
-    {/if}
-    {#if notice}
-      <p class="rounded-md bg-accent-soft px-3 py-2 text-sm text-accent">{notice}</p>
-    {/if}
-
-    <Button type="submit" class="w-full" disabled={form.processing || passwordsMismatch}>
+    <Button type="submit" class="w-full" disabled={form.processing}>
       {form.processing ? "Creating account…" : "Create account"}
     </Button>
 
@@ -152,3 +129,10 @@
     </p>
   </form>
 </AuthShell>
+
+<Toast
+  open={showGoogleToast}
+  title="Feature in development"
+  description="Google sign-up is still under development and not available yet. Please create your account using the manual registration form."
+  onclose={() => (showGoogleToast = false)}
+/>
