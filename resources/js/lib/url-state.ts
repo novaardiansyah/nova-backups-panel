@@ -20,21 +20,20 @@ export function updateQueryParams(updates: Record<string, string | number | null
   window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
-export function getInitialAction(): { action: string | null; id: number | null } {
+export function getInitialAction(): { action: string | null; id: string | null } {
   const params = getQueryParams();
   const action = params.get("action");
   const rawId = params.get("id");
-  const parsedId = rawId !== null && rawId !== "" ? Number(rawId) : null;
-  const id = parsedId !== null && Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null;
+  const id = rawId !== null && rawId.trim() !== "" ? rawId.trim() : null;
 
   return { action, id };
 }
 
-export function setActionParams(action: string | null, id: number | null = null): void {
+export function setActionParams(action: string | null, id: string | null = null): void {
   updateQueryParams({ action, id });
 }
 
-export function restoreDialogAction<T extends { id: number }>(
+export function restoreDialogAction<T extends { uid: string }>(
   items: T[],
   handlers: {
     onCreate?: () => void;
@@ -51,7 +50,7 @@ export function restoreDialogAction<T extends { id: number }>(
   }
 
   if (action === "edit" && id !== null && handlers.onEdit) {
-    const target = items.find((item) => item.id === id);
+    const target = items.find((item) => item.uid === id);
     if (target) {
       handlers.onEdit(target);
       return;
@@ -59,7 +58,7 @@ export function restoreDialogAction<T extends { id: number }>(
   }
 
   if (action === "delete" && id !== null && handlers.onDelete) {
-    const target = items.find((item) => item.id === id);
+    const target = items.find((item) => item.uid === id);
     if (target) {
       handlers.onDelete(target);
       return;

@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\BackupScheduleIntervalUnit;
 use App\Enums\BackupType;
+use App\Models\Concerns\HasUid;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id',
@@ -40,7 +40,7 @@ use Illuminate\Support\Str;
 ])]
 class BackupSchedule extends Model
 {
-    use SoftDeletes;
+    use HasUid, SoftDeletes;
 
     protected function casts(): array
     {
@@ -66,10 +66,6 @@ class BackupSchedule extends Model
     protected static function booted(): void
     {
         static::creating(function (self $schedule): void {
-            if (empty($schedule->uid)) {
-                $schedule->uid = (string) Str::uuid();
-            }
-
             if (empty($schedule->local_destination_path)) {
                 $schedule->local_destination_path = '/www/backup/sysadmin/others';
             }

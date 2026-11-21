@@ -93,7 +93,7 @@
       value: String(value ?? ""),
     }));
     isDialogOpen = true;
-    setActionParams("edit", storage.id);
+    setActionParams("edit", storage.uid);
   }
 
   function closeDialog() {

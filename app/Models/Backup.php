@@ -4,11 +4,11 @@ namespace App\Models;
 
 use App\Enums\BackupStatus;
 use App\Enums\BackupType;
+use App\Models\Concerns\HasUid;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id',
@@ -30,7 +30,7 @@ use Illuminate\Support\Str;
 ])]
 class Backup extends Model
 {
-    use SoftDeletes;
+    use HasUid, SoftDeletes;
 
     protected function casts(): array
     {
@@ -50,10 +50,6 @@ class Backup extends Model
     protected static function booted(): void
     {
         static::creating(function (self $backup): void {
-            if (empty($backup->uid)) {
-                $backup->uid = (string) Str::uuid();
-            }
-
             if ($backup->started_at === null) {
                 $backup->started_at = now();
             }

@@ -89,7 +89,7 @@
     form.max_count_backup = schedule.maxCountBackup;
     form.is_enabled = schedule.isEnabled;
     isDialogOpen = true;
-    setActionParams("edit", schedule.id);
+    setActionParams("edit", schedule.uid);
   }
 
   function closeDialog() {

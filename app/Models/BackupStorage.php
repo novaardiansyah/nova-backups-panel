@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUid;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 #[Fillable(['user_id', 'provider_id', 'uid', 'name', 'slug', 'keys', 'active'])]
 class BackupStorage extends Model
 {
-    use SoftDeletes;
+    use HasUid, SoftDeletes;
 
     protected function casts(): array
     {
@@ -19,15 +19,6 @@ class BackupStorage extends Model
             'keys' => 'array',
             'active' => 'boolean',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $storage): void {
-            if (empty($storage->uid)) {
-                $storage->uid = (string) Str::uuid();
-            }
-        });
     }
 
     public function user(): BelongsTo

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Jobs\SendLoginOtpEmail;
 use App\Jobs\SendRegisterOtpEmail;
 use App\Jobs\SendResetPasswordOtpEmail;
+use App\Models\Concerns\HasUid;
 use App\Support\OtpRateLimiter;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -17,11 +18,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Cache;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['uid', 'name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable;
+    use HasFactory, HasUid, Notifiable;
 
     protected function casts(): array
     {

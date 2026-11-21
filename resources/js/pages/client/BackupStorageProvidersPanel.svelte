@@ -92,7 +92,7 @@
       value: String(value ?? ""),
     }));
     isDialogOpen = true;
-    setActionParams("edit", provider.id);
+    setActionParams("edit", provider.uid);
   }
 
   function closeDialog() {
@@ -190,7 +190,7 @@
     const provider = menuProvider;
     closeMenu();
     confirmDeleteProvider = provider;
-    setActionParams("delete", provider.id);
+    setActionParams("delete", provider.uid);
   }
 
   function closeConfirmDelete() {
