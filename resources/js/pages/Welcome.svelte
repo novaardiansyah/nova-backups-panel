@@ -132,7 +132,7 @@
         {#if isAuthenticated}
           <Link
             href="/client"
-            class="ml-1 inline-flex items-center justify-center rounded-md bg-ink px-3.5 py-2 text-xs font-semibold text-page transition-opacity hover:opacity-90 sm:text-sm"
+            class="ml-1 hidden items-center justify-center rounded-md bg-ink px-3.5 py-2 text-sm font-semibold text-page transition-opacity hover:opacity-90 sm:inline-flex"
           >
             {content.nav.clientArea}
           </Link>
@@ -145,7 +145,7 @@
           </Link>
           <Link
             href="/register"
-            class="ml-1 inline-flex items-center justify-center rounded-md bg-ink px-3.5 py-2 text-xs font-semibold text-page transition-opacity hover:opacity-90 sm:text-sm"
+            class="ml-1 hidden items-center justify-center rounded-md bg-ink px-3.5 py-2 text-sm font-semibold text-page transition-opacity hover:opacity-90 sm:inline-flex"
           >
             {content.nav.getStarted}
           </Link>
@@ -182,10 +182,19 @@
           <a href="#capabilities" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.capabilities}</a>
           <a href="#architecture" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.architecture}</a>
           <a href="#faq" onclick={() => (mobileNavOpen = false)} class="rounded-md px-2.5 py-2 text-muted transition-colors hover:bg-surface-muted hover:text-ink">{content.nav.faq}</a>
-          {#if !isAuthenticated}
-            <Link href="/login" onclick={() => (mobileNavOpen = false)} class="mt-1 rounded-md border border-line px-2.5 py-2 text-center font-medium text-ink transition-colors hover:bg-surface-muted sm:hidden">
-              {content.nav.signIn}
+          {#if isAuthenticated}
+            <Link href="/client" onclick={() => (mobileNavOpen = false)} class="mt-2 rounded-md bg-ink px-2.5 py-2 text-center font-semibold text-page transition-opacity hover:opacity-90 sm:hidden">
+              {content.nav.clientArea}
             </Link>
+          {:else}
+            <div class="mt-2 grid grid-cols-2 gap-2 sm:hidden">
+              <Link href="/login" onclick={() => (mobileNavOpen = false)} class="rounded-md border border-line px-2.5 py-2 text-center font-medium text-ink transition-colors hover:bg-surface-muted">
+                {content.nav.signIn}
+              </Link>
+              <Link href="/register" onclick={() => (mobileNavOpen = false)} class="rounded-md bg-ink px-2.5 py-2 text-center font-semibold text-page transition-opacity hover:opacity-90">
+                {content.nav.getStarted}
+              </Link>
+            </div>
           {/if}
         </div>
       </nav>
