@@ -2,30 +2,14 @@
   import { router } from "@inertiajs/svelte";
   import ThemeToggle from "@/components/auth/theme-toggle.svelte";
   import { Toast } from "@/components/ui/toast/index.js";
-  import type {
-    BackupItem,
-    BackupScheduleItem,
-    BackupStorageItem,
-    BackupStorageProviderItem,
-  } from "@/lib/backup-types.js";
   import { getClientTranslations } from "@/lib/i18n.js";
   import { applyTheme } from "@/lib/theme.js";
   import { getQueryParams, updateQueryParams } from "@/lib/url-state.js";
-  import BackupSchedulesPanel from "./BackupSchedulesPanel.svelte";
-  import BackupStorageProvidersPanel from "./BackupStorageProvidersPanel.svelte";
-  import BackupStoragesPanel from "./BackupStoragesPanel.svelte";
-  import BackupsPanel from "./BackupsPanel.svelte";
   import OnboardingDialog from "./OnboardingDialog.svelte";
   import PreferencesPanel from "./PreferencesPanel.svelte";
   import ProfilePanel, { type ClientUser } from "./ProfilePanel.svelte";
 
-  type ClientSection =
-    | "backups"
-    | "schedules"
-    | "storages"
-    | "providers"
-    | "profile"
-    | "preferences";
+  type ClientSection = "profile" | "preferences";
 
   interface ClientMenuItem {
     id: ClientSection;
@@ -34,10 +18,6 @@
 
   interface Props {
     user: ClientUser;
-    backups?: BackupItem[];
-    backupSchedules?: BackupScheduleItem[];
-    backupStorages?: BackupStorageItem[];
-    backupStorageProviders?: BackupStorageProviderItem[];
     showOnboarding?: boolean;
     onboardingCompleted?: boolean;
     status?: string | null;
@@ -45,10 +25,6 @@
 
   let {
     user,
-    backups = [],
-    backupSchedules = [],
-    backupStorages = [],
-    backupStorageProviders = [],
     showOnboarding = false,
     onboardingCompleted = false,
     status = null,
@@ -58,10 +34,6 @@
 
   const menu = $derived<ClientMenuItem[]>([
     { id: "profile", label: copy.menu.profile },
-    { id: "backups", label: copy.menu.backups },
-    { id: "schedules", label: copy.menu.backupSchedules },
-    { id: "storages", label: copy.menu.backupStorages },
-    { id: "providers", label: copy.menu.backupStorageProviders },
     { id: "preferences", label: copy.menu.preferences },
   ]);
 
@@ -76,19 +48,11 @@
 
   const tabToSection: Record<string, ClientSection> = {
     profile: "profile",
-    backups: "backups",
-    "backup-schedules": "schedules",
-    "backup-storages": "storages",
-    "backup-providers": "providers",
     preferences: "preferences",
   };
 
   const sectionToTab: Record<ClientSection, string> = {
     profile: "profile",
-    backups: "backups",
-    schedules: "backup-schedules",
-    storages: "backup-storages",
-    providers: "backup-providers",
     preferences: "preferences",
   };
 
@@ -196,33 +160,7 @@
                 aria-current={active === item.id ? "page" : undefined}
                 onclick={() => selectSection(item.id)}
               >
-                {#if item.id === "backups"}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" x2="12" y1="15" y2="3"/>
-                  </svg>
-                {:else if item.id === "schedules"}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
-                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-                    <line x1="16" x2="16" y1="2" y2="6"/>
-                    <line x1="8" x2="8" y1="2" y2="6"/>
-                    <line x1="3" x2="21" y1="10" y2="10"/>
-                  </svg>
-                {:else if item.id === "storages"}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
-                    <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
-                    <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
-                    <line x1="6" x2="6.01" y1="6" y2="6"/>
-                    <line x1="6" x2="6.01" y1="18" y2="18"/>
-                  </svg>
-                {:else if item.id === "providers"}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
-                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                    <path d="M3 5v14a9 3 0 0 0 18 0V5"/>
-                    <path d="M3 12a9 3 0 0 0 18 0"/>
-                  </svg>
-                {:else if item.id === "profile"}
+                {#if item.id === "profile"}
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
                     <circle cx="12" cy="7" r="4"/>
@@ -297,15 +235,7 @@
       </aside>
 
       <div class="min-w-0">
-        {#if active === "backups"}
-          <BackupsPanel {backups} onstatus={showStatusToast} />
-        {:else if active === "schedules"}
-          <BackupSchedulesPanel schedules={backupSchedules} storages={backupStorages} onstatus={showStatusToast} />
-        {:else if active === "storages"}
-          <BackupStoragesPanel storages={backupStorages} providers={backupStorageProviders} onstatus={showStatusToast} />
-        {:else if active === "providers"}
-          <BackupStorageProvidersPanel providers={backupStorageProviders} onstatus={showStatusToast} />
-        {:else if active === "profile"}
+        {#if active === "profile"}
           <ProfilePanel {user} onstatus={showStatusToast} />
         {:else}
           <PreferencesPanel {user} onstatus={showStatusToast} />

@@ -1,10 +1,6 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BackupController;
-use App\Http\Controllers\BackupScheduleController;
-use App\Http\Controllers\BackupStorageController;
-use App\Http\Controllers\BackupStorageProviderController;
 use App\Http\Controllers\ClientAreaController;
 use App\Models\Faq;
 use Illuminate\Support\Facades\Route;
@@ -53,16 +49,6 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/client', [ClientAreaController::class, 'index'])->name('client.area');
     Route::put('/client/profile', [ClientAreaController::class, 'updateProfile'])->name('client.profile.update');
     Route::put('/client/preferences', [ClientAreaController::class, 'updatePreferences'])->name('client.preferences.update');
-    Route::post('/client/backup-storage-providers', [BackupStorageProviderController::class, 'store'])->name('client.backup-storage-providers.store');
-    Route::put('/client/backup-storage-providers/{provider}', [BackupStorageProviderController::class, 'update'])->name('client.backup-storage-providers.update');
-    Route::delete('/client/backup-storage-providers/{provider}', [BackupStorageProviderController::class, 'destroy'])->name('client.backup-storage-providers.destroy');
-    Route::post('/client/backup-storages', [BackupStorageController::class, 'store'])->name('client.backup-storages.store');
-    Route::put('/client/backup-storages/{storage}', [BackupStorageController::class, 'update'])->name('client.backup-storages.update');
-    Route::delete('/client/backup-storages/{storage}', [BackupStorageController::class, 'destroy'])->name('client.backup-storages.destroy');
-    Route::post('/client/backup-schedules', [BackupScheduleController::class, 'store'])->name('client.backup-schedules.store');
-    Route::put('/client/backup-schedules/{schedule}', [BackupScheduleController::class, 'update'])->name('client.backup-schedules.update');
-    Route::delete('/client/backup-schedules/{schedule}', [BackupScheduleController::class, 'destroy'])->name('client.backup-schedules.destroy');
-    Route::delete('/client/backups/{backup}', [BackupController::class, 'destroy'])->name('client.backups.destroy');
     Route::post('/onboarding', [ClientAreaController::class, 'completeOnboarding'])->name('onboarding.store');
     Route::post('/onboarding/skip', [ClientAreaController::class, 'skipOnboarding'])->name('onboarding.skip');
 });

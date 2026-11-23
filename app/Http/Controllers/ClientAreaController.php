@@ -2,10 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Backup;
-use App\Models\BackupSchedule;
-use App\Models\BackupStorage;
-use App\Models\BackupStorageProvider;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,87 +31,6 @@ class ClientAreaController extends Controller
             'showOnboarding' => (bool) $request->session()->get('show_onboarding', false),
             'onboardingCompleted' => (bool) $request->session()->get('onboarding_completed', false),
             'status' => session('status'),
-            'backups' => Backup::query()
-                ->where('user_id', $user->id)
-                ->with(['schedule:id,name', 'storage:id,name', 'server:id,name'])
-                ->latest('id')
-                ->get()
-                ->map(fn (Backup $backup) => [
-                    'id' => $backup->id,
-                    'uid' => $backup->uid,
-                    'fileName' => $backup->file_name,
-                    'fileSize' => $backup->file_size,
-                    'type' => $backup->type?->value,
-                    'status' => $backup->status?->value ?? 'pending',
-                    'duration' => $backup->duration,
-                    'message' => $backup->message,
-                    'scheduleName' => $backup->schedule?->name,
-                    'storageName' => $backup->storage?->name,
-                    'serverName' => $backup->server?->name,
-                    'startedAt' => $backup->started_at?->toIso8601String(),
-                    'completedAt' => $backup->completed_at?->toIso8601String(),
-                ]),
-            'backupSchedules' => BackupSchedule::query()
-                ->where('user_id', $user->id)
-                ->with(['storage:id,name', 'server:id,name'])
-                ->latest('id')
-                ->get()
-                ->map(fn (BackupSchedule $schedule) => [
-                    'id' => $schedule->id,
-                    'uid' => $schedule->uid,
-                    'name' => $schedule->name,
-                    'type' => $schedule->type?->value ?? 'files',
-                    'drivers' => $schedule->drivers,
-                    'databaseName' => $schedule->database_name,
-                    'sourcePath' => $schedule->source_path,
-                    'include' => $schedule->include ?? [],
-                    'exclude' => $schedule->exclude ?? [],
-                    'localDestinationPath' => $schedule->local_destination_path,
-                    'r2DestinationPath' => $schedule->r2_destination_path,
-                    'keepLocalBackup' => $schedule->keep_local_backup,
-                    'isSyncCloud' => $schedule->is_sync_cloud,
-                    'filenamePattern' => $schedule->filename_pattern,
-                    'countBackup' => $schedule->count_backup,
-                    'maxCountBackup' => $schedule->max_count_backup,
-                    'sumFileSize' => $schedule->sum_file_size,
-                    'intervalValue' => $schedule->interval_value,
-                    'intervalUnit' => $schedule->interval_unit?->value ?? 'days',
-                    'nextBackupAt' => $schedule->next_backup_at?->toIso8601String(),
-                    'lastBackupAt' => $schedule->last_backup_at?->toIso8601String(),
-                    'isEnabled' => $schedule->is_enabled,
-                    'storageId' => $schedule->storage_id,
-                    'serverId' => $schedule->server_id,
-                    'storageName' => $schedule->storage?->name,
-                    'serverName' => $schedule->server?->name,
-                ]),
-            'backupStorages' => BackupStorage::query()
-                ->where('user_id', $user->id)
-                ->with('provider:id,name')
-                ->latest('id')
-                ->get()
-                ->map(fn (BackupStorage $storage) => [
-                    'id' => $storage->id,
-                    'uid' => $storage->uid,
-                    'name' => $storage->name,
-                    'slug' => $storage->slug,
-                    'providerId' => $storage->provider_id,
-                    'providerName' => $storage->provider?->name,
-                    'keys' => $storage->keys ?? [],
-                    'active' => $storage->active,
-                ]),
-            'backupStorageProviders' => BackupStorageProvider::query()
-                ->where('user_id', $user->id)
-                ->withCount('storages')
-                ->latest('id')
-                ->get()
-                ->map(fn (BackupStorageProvider $provider) => [
-                    'id' => $provider->id,
-                    'uid' => $provider->uid,
-                    'name' => $provider->name,
-                    'slug' => $provider->slug,
-                    'keys' => $provider->keys ?? [],
-                    'storagesCount' => $provider->storages_count,
-                ]),
         ]);
     }
 
