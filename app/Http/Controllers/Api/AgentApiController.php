@@ -379,9 +379,9 @@ class AgentApiController extends Controller
     $agent = $request->attributes->get('agent');
     $leaseToken = (string) ($request->input('lease_token') ?: $request->header('X-Lease-Token', ''));
 
-    return $task->agent_id === $agent->id
+    return (int) $task->agent_id === (int) $agent->id
       && $task->status === 'leased'
       && $leaseToken !== ''
-      && hash_equals((string) $task->lease_token, $leaseToken);
+      && hash_equals(strtolower((string) $task->lease_token), strtolower($leaseToken));
   }
 }
