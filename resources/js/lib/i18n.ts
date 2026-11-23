@@ -6,6 +6,11 @@ export interface ClientTranslations {
   subtitle: string;
   menu: {
     profile: string;
+    agents: string;
+    backupProfiles: string;
+    storageAccounts: string;
+    backupRuns: string;
+    auditLogs: string;
     preferences: string;
     backToHome: string;
     homeUnavailableTitle: string;
@@ -67,6 +72,11 @@ export const clientTranslations: Record<LocalePreference, ClientTranslations> = 
     subtitle: "Manage your account, preferences, and security settings.",
     menu: {
       profile: "Profile",
+      agents: "Agents",
+      backupProfiles: "Backup Profiles",
+      storageAccounts: "Storage Accounts",
+      backupRuns: "Backup Runs",
+      auditLogs: "Audit Logs",
       preferences: "Preferences",
       backToHome: "Back to home",
       homeUnavailableTitle: "Feature in development",
@@ -126,6 +136,11 @@ export const clientTranslations: Record<LocalePreference, ClientTranslations> = 
     subtitle: "Kelola akun, preferensi tampilan, dan pengaturan keamanan Anda.",
     menu: {
       profile: "Profil",
+      agents: "Agen",
+      backupProfiles: "Profil Backup",
+      storageAccounts: "Penyimpanan Cloud",
+      backupRuns: "Riwayat Backup",
+      auditLogs: "Log Audit",
       preferences: "Preferensi",
       backToHome: "Kembali ke beranda",
       homeUnavailableTitle: "Fitur dalam pengembangan",

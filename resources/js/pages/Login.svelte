@@ -125,7 +125,7 @@
   }
 
   function handleGoogle() {
-    showGoogleToast = true;
+    window.location.href = "/auth/google/redirect";
   }
 </script>
 

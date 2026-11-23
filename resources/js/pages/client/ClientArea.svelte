@@ -5,11 +5,30 @@
   import { getClientTranslations } from "@/lib/i18n.js";
   import { applyTheme } from "@/lib/theme.js";
   import { getQueryParams, updateQueryParams } from "@/lib/url-state.js";
+  import type {
+    AgentItem,
+    AuditLogItem,
+    BackupProfileItem,
+    BackupRunItem,
+    StorageAccountItem,
+  } from "@/lib/v2-types.js";
+  import AgentsPanel from "./AgentsPanel.svelte";
+  import AuditLogsPanel from "./AuditLogsPanel.svelte";
+  import BackupProfilesPanel from "./BackupProfilesPanel.svelte";
+  import BackupRunsPanel from "./BackupRunsPanel.svelte";
   import OnboardingDialog from "./OnboardingDialog.svelte";
   import PreferencesPanel from "./PreferencesPanel.svelte";
   import ProfilePanel, { type ClientUser } from "./ProfilePanel.svelte";
+  import StorageAccountsPanel from "./StorageAccountsPanel.svelte";
 
-  type ClientSection = "profile" | "preferences";
+  type ClientSection =
+    | "profile"
+    | "agents"
+    | "profiles"
+    | "storages"
+    | "runs"
+    | "audit"
+    | "preferences";
 
   interface ClientMenuItem {
     id: ClientSection;
@@ -18,6 +37,12 @@
 
   interface Props {
     user: ClientUser;
+    agents?: AgentItem[];
+    storageAccounts?: StorageAccountItem[];
+    backupProfiles?: BackupProfileItem[];
+    backupRuns?: BackupRunItem[];
+    auditLogs?: AuditLogItem[];
+    agentToken?: string | null;
     showOnboarding?: boolean;
     onboardingCompleted?: boolean;
     status?: string | null;
@@ -25,6 +50,12 @@
 
   let {
     user,
+    agents = [],
+    storageAccounts = [],
+    backupProfiles = [],
+    backupRuns = [],
+    auditLogs = [],
+    agentToken = null,
     showOnboarding = false,
     onboardingCompleted = false,
     status = null,
@@ -34,6 +65,11 @@
 
   const menu = $derived<ClientMenuItem[]>([
     { id: "profile", label: copy.menu.profile },
+    { id: "agents", label: copy.menu.agents },
+    { id: "profiles", label: copy.menu.backupProfiles },
+    { id: "storages", label: copy.menu.storageAccounts },
+    { id: "runs", label: copy.menu.backupRuns },
+    { id: "audit", label: copy.menu.auditLogs },
     { id: "preferences", label: copy.menu.preferences },
   ]);
 
@@ -48,11 +84,21 @@
 
   const tabToSection: Record<string, ClientSection> = {
     profile: "profile",
+    agents: "agents",
+    profiles: "profiles",
+    storages: "storages",
+    runs: "runs",
+    audit: "audit",
     preferences: "preferences",
   };
 
   const sectionToTab: Record<ClientSection, string> = {
     profile: "profile",
+    agents: "agents",
+    profiles: "profiles",
+    storages: "storages",
+    runs: "runs",
+    audit: "audit",
     preferences: "preferences",
   };
 
@@ -165,6 +211,36 @@
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
                     <circle cx="12" cy="7" r="4"/>
                   </svg>
+                {:else if item.id === "agents"}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
+                    <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
+                    <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
+                    <line x1="6" x2="6.01" y1="6" y2="6"/>
+                    <line x1="6" x2="6.01" y1="18" y2="18"/>
+                  </svg>
+                {:else if item.id === "profiles"}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" x2="12" y1="15" y2="3"/>
+                  </svg>
+                {:else if item.id === "storages"}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M3 5v14a9 3 0 0 0 18 0V5"/>
+                    <path d="M3 12a9 3 0 0 0 18 0"/>
+                  </svg>
+                {:else if item.id === "runs"}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                {:else if item.id === "audit"}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" x2="8" y1="13" y2="13"/>
+                    <line x1="16" x2="8" y1="17" y2="17"/>
+                  </svg>
                 {:else}
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 {active === item.id ? 'text-accent' : 'text-faint'}">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -237,6 +313,16 @@
       <div class="min-w-0">
         {#if active === "profile"}
           <ProfilePanel {user} onstatus={showStatusToast} />
+        {:else if active === "agents"}
+          <AgentsPanel {agents} {agentToken} locale={user.locale} onstatus={showStatusToast} />
+        {:else if active === "profiles"}
+          <BackupProfilesPanel profiles={backupProfiles} {agents} {storageAccounts} locale={user.locale} onstatus={showStatusToast} />
+        {:else if active === "storages"}
+          <StorageAccountsPanel {storageAccounts} locale={user.locale} onstatus={showStatusToast} />
+        {:else if active === "runs"}
+          <BackupRunsPanel runs={backupRuns} locale={user.locale} onstatus={showStatusToast} />
+        {:else if active === "audit"}
+          <AuditLogsPanel {auditLogs} locale={user.locale} />
         {:else}
           <PreferencesPanel {user} onstatus={showStatusToast} />
         {/if}
